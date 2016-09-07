@@ -4,10 +4,10 @@
 #include <string>
 #include <iostream>
 
-#include <RakNet\RakPeerInterface.h>
-#include <RakNet\MessageIdentifiers.h>
-#include <RakNet\BitStream.h>
-#include <RakNet\RakNetTypes.h>  // MessageID
+#include <RakNet/RakPeerInterface.h>
+#include <RakNet/MessageIdentifiers.h>
+#include <RakNet/BitStream.h>
+#include <RakNet/RakNetTypes.h>  // MessageID
 
 #define MAX_CLIENTS 10
 #define SERVER_PORT 60000
@@ -60,7 +60,9 @@ int main(void)
 
 	}
 
-	while (1)
+	bool done = false;
+
+	while (!done)
 	{
 		for (packet = peer->Receive(); packet; peer->DeallocatePacket(packet), packet = peer->Receive())
 		{
@@ -86,16 +88,22 @@ int main(void)
 				bsOut.Write("Hello world");
 				peer->Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
 
+				// Send some input text to the server.
 				if (!isServer)
 				{
 					while (true)
 					{
 						string input;
 
-						cin >> input;
+						//cin >> input;
+						getline(cin, input);
 
-						if (input == "q")
+						if (input[0] == 'q')
+						{
 							break;
+							done = true;
+							cout << "Shutting down client..." << endl;
+						}
 
 						RakNet::BitStream bsOut2;
 						bsOut2.Write((RakNet::MessageID) ID_GAME_MESSAGE_1);
@@ -103,6 +111,7 @@ int main(void)
 						peer->Send(&bsOut2, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
 					}
 				}
+
 			}
 			break;
 			case ID_NEW_INCOMING_CONNECTION:
