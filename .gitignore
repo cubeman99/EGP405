@@ -1,0 +1,9 @@
+
+build/*.sdf
+build/*.db
+build/*.opendb
+build/*.suo
+
+build/.vs/
+build/[Dd]ebug
+build/[Rr]elease
