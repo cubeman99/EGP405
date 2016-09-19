@@ -19,7 +19,6 @@ public:
 	int m_health;
 	int m_gold;
 	MenuSystem m_menuSystem;
-	std::ostringstream m_outputStream; // Used to build text to send back to the client.
 };
 
 //-----------------------------------------------------------------------------

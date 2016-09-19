@@ -16,6 +16,9 @@
     <Filter Include="Source Files\Menus">
       <UniqueIdentifier>{287316f1-120a-4058-8a2f-2aa51cf22e6e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Reused Code">
+      <UniqueIdentifier>{c54ab77d-904c-49c4-94b5-c46199409260}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -36,6 +39,15 @@
     <ClCompile Include="main_menu.cpp">
       <Filter>Source Files\Menus</Filter>
     </ClCompile>
+    <ClCompile Include="menu_display.cpp">
+      <Filter>Source Files\Menus</Filter>
+    </ClCompile>
+    <ClCompile Include="color.cpp">
+      <Filter>Source Files\Reused Code</Filter>
+    </ClCompile>
+    <ClCompile Include="keyboard.cpp">
+      <Filter>Source Files\Reused Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="game.h">
@@ -52,6 +64,15 @@
     </ClInclude>
     <ClInclude Include="main_menu.h">
       <Filter>Source Files\Menus</Filter>
+    </ClInclude>
+    <ClInclude Include="menu_display.h">
+      <Filter>Source Files\Menus</Filter>
+    </ClInclude>
+    <ClInclude Include="color.h">
+      <Filter>Source Files\Reused Code</Filter>
+    </ClInclude>
+    <ClInclude Include="keyboard.h">
+      <Filter>Source Files\Reused Code</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

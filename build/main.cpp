@@ -4,8 +4,11 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <ctime>
 
 #include "game.h"
+#include "keyboard.h"
+#include "menu_display.h"
 
 #include <RakNet/RakPeerInterface.h>
 #include <RakNet/MessageIdentifiers.h>
@@ -26,113 +29,27 @@ enum GameMessages
 {
 	ID_GAME_MESSAGE_1 = ID_USER_PACKET_ENUM + 1,
 
-	ID_MENU_OPTION, // Client sends a chosen option ID to the server.
-	ID_MENU_DISPLAY_TEXT, // Server sends text to client to display a menu.
+	ID_MENU_OPTION,             // Client sends a chosen option ID to the server.
+	ID_MENU_DISPLAY_TEXT,       // Server sends text to client to display a menu.
 	ID_MENU_QUIT,
+
+	ID_MENU_UPDATE_DESCRIPTION, // Only the menu description has changed.
+	ID_MENU_NEW_MENU,           // A new menu has been entered.
 };
 
-
-//-----------------------------------------------------------------------------
-// RunClient
-//-----------------------------------------------------------------------------
-void RunClient()
-{
-	RakPeerInterface *peer = RakPeerInterface::GetInstance();
-	Packet *packet;
-
-	// Setup the socket.
-	SocketDescriptor sd;
-	peer->Startup(1, &sd, 1);
-
-	// Prompt for the IP address to connect to.
-	char str[512];
-	printf("Enter server IP or hit enter for 127.0.0.1\n");
-	gets_s(str, sizeof(str));
-	if (str[0] == 0)
-	{
-		strcpy_s(str, "127.0.0.1");
-	}
-
-	// Connect to the server.
-	printf("Starting the client.\n");
-	peer->Connect(str, SERVER_PORT, 0, 0);
-	
-	bool done = false;
-
-	// Receive incoming packets.
-	while (!done)
-	{
-		for (packet = peer->Receive(); packet != NULL && !done;
-			peer->DeallocatePacket(packet), packet = peer->Receive())
-		{
-			switch (packet->data[0])
-			{
-			case ID_NO_FREE_INCOMING_CONNECTIONS:
-				printf("The server is full.\n");
-				done = true;
-				break;
-			case ID_DISCONNECTION_NOTIFICATION:
-				printf("We have been disconnected.\n");
-				done = true;
-				break;
-			case ID_CONNECTION_LOST:
-				printf("Connection lost.\n");
-				done = true;
-				break;
-			case ID_CONNECTION_REQUEST_ACCEPTED:
-				printf("Our connection request has been accepted!\n\n");
-				break;
-			case ID_MENU_DISPLAY_TEXT:
-			{
-				// We have recieved a new menu!
-				RakString text;
-				BitStream bsIn(packet->data, packet->length, false);
-				bsIn.IgnoreBytes(sizeof(MessageID));
-				bsIn.Read(text);
-
-				// Display the menu text.
-				printf("%s\n> ", text.C_String());
-
-				// Wait for user input.
-				std::string input;
-				getline(std::cin, input);
-				printf("\n");
-
-				// Send user input to the server.
-				BitStream bsOut;
-				bsOut.Write((MessageID) ID_MENU_OPTION);
-				bsOut.Write(input.c_str());
-				peer->Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED, 0,
-					packet->systemAddress, false);
-				
-				break;
-			}
-			case ID_MENU_QUIT:
-			{
-				printf("Quitting the game...\n");
-				done = true;
-				break;
-			}
-			default:
-				printf("Message with identifier %i has arrived.\n",
-					packet->data[0]);
-				break;
-			}
-		}
-	}
-}
 
 //-----------------------------------------------------------------------------
 // RunServer
 //-----------------------------------------------------------------------------
 void RunServer()
 {
+	srand((unsigned int) time(0));
+
 	RakPeerInterface *peer = RakPeerInterface::GetInstance();
 	Packet *packet;
 
 	// Initialize the game context.
 	GameData game;
-	game.m_bankGold = 80;
 
 	// Setup the server socket.
 	printf("Starting the server.\n");
@@ -182,17 +99,16 @@ void RunServer()
 
 				// Setup the user who just connected.
 				PlayerInfo* player = game.ConnectPlayer(packet->guid);
+				Menu* currentMenu = player->m_menuSystem.GetCurrentMenu();
 
-				// Send the first menu text to the client..
-				std::ostringstream output;
-				output << "Welcome to the game!" << endl << endl;
-				output << player->m_menuSystem.GetCurrentMenu()->
-					GetMenuText().c_str();
-
-				std::string outputText = player->m_outputStream.str();
+				// Send a new-menu message.
 				BitStream bsOut;
-				bsOut.Write((MessageID)ID_MENU_DISPLAY_TEXT);
-				bsOut.Write(output.str().c_str());
+				bsOut.Write((MessageID)ID_MENU_NEW_MENU);
+				bsOut.Write(currentMenu->GetTitle().c_str());
+				bsOut.Write(currentMenu->GetDescription().c_str());
+				bsOut.Write(currentMenu->GetOptionCount());
+				for (int i = 0; i < currentMenu->GetOptionCount(); i++)
+					bsOut.Write(currentMenu->GetOption(i).c_str());
 				peer->Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED, 0,
 					packet->systemAddress, false);
 
@@ -207,54 +123,56 @@ void RunServer()
 					break;
 
 				// Get the input text from the packet.
-				RakString input;
+				int option = 0;
 				BitStream bsIn(packet->data, packet->length, false);
 				bsIn.IgnoreBytes(sizeof(MessageID));
-				bsIn.Read(input);
-
-				// Parse the input text into an option number.
-				char* endptr;
-				int option = strtol(input.C_String(), &endptr, 10);
-				if (*endptr != '\0')
-				{
-					option = -1; // unable to convert input to integer.
-				}
-
+				bsIn.Read(option);
 				cout << "Player " << packet->guid.ToString()
-					<< " has sent the input (" << option << "): "
-					<< input.C_String() << endl;
+					 << " has chosen option " << option << endl;
 
 				// Perform menu code for the given option.
-				player->m_menuSystem.GetCurrentMenu()->OnChoose(option, &game,
-					player);
+				Menu* previousMenu = player->m_menuSystem.GetCurrentMenu();
+				player->m_menuSystem.GetCurrentMenu()->OnChoose(option, &game, player);
+				Menu* currentMenu = player->m_menuSystem.GetCurrentMenu();
 
-				// Check if we exited all menus.
-				if (player->m_menuSystem.GetCurrentMenu() == NULL)
+				// Check if we exited all menus or changed menus.
+				if (currentMenu == NULL)
 				{
 					// Send a message for the cient to exit.
 					BitStream bsOut;
 					bsOut.Write((MessageID) ID_MENU_QUIT);
 					peer->Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED, 0,
 						packet->systemAddress, false);
-
-					printf("Player %s has quit the game.\n",
-						packet->guid.ToString());
+					cout << "Player " << packet->guid.ToString()
+						 << " has quit the game" << endl;
 					break;
 				}
-				else 
+				else if (currentMenu != previousMenu)
 				{
-					// Output the next menu.
-					player->m_outputStream << endl <<
-						player->m_menuSystem.GetCurrentMenu()->GetMenuText();
-
-					// Send the output text to the player's client.
+					// Send a new-menu message.
 					BitStream bsOut;
-					bsOut.Write((MessageID) ID_MENU_DISPLAY_TEXT);
-					bsOut.Write(player->m_outputStream.str().c_str());
+					bsOut.Write((MessageID) ID_MENU_NEW_MENU);
+					bsOut.Write(currentMenu->GetTitle().c_str());
+					bsOut.Write(currentMenu->GetDescription().c_str());
+					bsOut.Write(currentMenu->GetOptionCount());
+					for (int i = 0; i < currentMenu->GetOptionCount(); i++)
+						bsOut.Write(currentMenu->GetOption(i).c_str());
 					peer->Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED, 0,
 						packet->systemAddress, false);
-					player->m_outputStream.str(""); // clear the output text.
-					player->m_outputStream.clear();
+					cout << "Sending a new-menu message to player "
+						 << packet->guid.ToString() << endl;
+				}
+				else
+				{
+					// Send a update description message.
+					BitStream bsOut;
+					bsOut.Write((MessageID) ID_MENU_UPDATE_DESCRIPTION);
+					bsOut.Write(currentMenu->GetDescription().c_str());
+					peer->Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED, 0,
+						packet->systemAddress, false);
+
+					cout << "Sending a udpate-description message to player "
+						 << packet->guid.ToString() << endl;
 				}
 
 				break;
@@ -265,6 +183,168 @@ void RunServer()
 			}
 		}
 	}
+
+	Keyboard::terminate();
+}
+
+
+//-----------------------------------------------------------------------------
+// RunClient
+//-----------------------------------------------------------------------------
+void RunClient()
+{
+	RakPeerInterface *peer = RakPeerInterface::GetInstance();
+	Packet *packet;
+
+	// Setup the socket.
+	SocketDescriptor sd;
+	peer->Startup(1, &sd, 1);
+
+	// Prompt for the IP address to connect to.
+	char str[512];
+	printf("Enter server IP or hit enter for 127.0.0.1\n");
+	gets_s(str, sizeof(str));
+	if (str[0] == 0)
+	{
+		strcpy_s(str, "127.0.0.1");
+	}
+
+	// Connect to the server.
+	printf("Starting the client.\n");
+	peer->Connect(str, SERVER_PORT, 0, 0);
+	
+	// Client game initialization.
+	MenuDisplay menuDisplay;
+	HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+	Keyboard::initialize();
+	SystemAddress serverAddress;
+	bool done = false;
+	bool isConnected = false;
+
+	// Hide the text cursor.
+	CONSOLE_CURSOR_INFO cursorInfo;
+	if (GetConsoleCursorInfo(handle, &cursorInfo) != 0)
+	{
+		cursorInfo.bVisible = (BOOL)false;
+		SetConsoleCursorInfo(handle, &cursorInfo);
+	}
+	
+	// Create a menu while waiting to connect.
+	vector<string> options;
+	options.push_back("Quit");
+	menuDisplay.NewMenu(
+		"Connecting",
+		"Waiting for connection...",
+		options);
+	menuDisplay.Display(handle);
+
+	// Receive incoming packets.
+	while (!done)
+	{
+		Keyboard::update();
+
+		// Menu navigation keys.
+		if (isConnected)
+		{
+			if (Keyboard::KEY_DOWN->pressed())
+			{
+				menuDisplay.MoveCursorNext();
+				menuDisplay.Display(handle);
+			}
+			if (Keyboard::KEY_UP->pressed())
+			{
+				menuDisplay.MoveCursorBack();
+				menuDisplay.Display(handle);
+			}
+			if (Keyboard::KEY_ENTER->pressed())
+			{
+				// Send option index to server.
+				BitStream bsOut;
+				bsOut.Write((MessageID) ID_MENU_OPTION);
+				bsOut.Write(menuDisplay.GetCursorIndex());
+				peer->Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED, 0, serverAddress, false);
+			}
+		}
+
+		// Read all incoming packets.
+		for (packet = peer->Receive(); packet != NULL && !done;
+			peer->DeallocatePacket(packet), packet = peer->Receive())
+		{
+			serverAddress = packet->systemAddress;
+
+			switch (packet->data[0])
+			{
+			case ID_NO_FREE_INCOMING_CONNECTIONS:
+				printf("The server is full.\n");
+				done = true;
+				break;
+			case ID_DISCONNECTION_NOTIFICATION:
+				printf("We have been disconnected.\n");
+				done = true;
+				break;
+			case ID_CONNECTION_LOST:
+				printf("Connection lost.\n");
+				done = true;
+				break;
+			case ID_CONNECTION_REQUEST_ACCEPTED:
+				printf("Our connection request has been accepted!\n\n");
+				isConnected = true;
+				break;
+			case ID_MENU_UPDATE_DESCRIPTION: // The menu's description has changed.
+			{
+				RakString description;
+
+				// Read the packet.
+				BitStream bsIn(packet->data, packet->length, false);
+				bsIn.IgnoreBytes(sizeof(MessageID));
+				bsIn.Read(description);
+				
+				// Update the menu's description.
+				menuDisplay.SetDescription(description.C_String());
+				menuDisplay.Display(handle);
+				break;
+			}
+			case ID_MENU_NEW_MENU: // We have recieved a new menu!
+			{
+				RakString title;
+				RakString description;
+				RakString option;
+				vector<string> options;
+				int numOptions = 0;
+
+				// Read the packet.
+				BitStream bsIn(packet->data, packet->length, false);
+				bsIn.IgnoreBytes(sizeof(MessageID));
+				bsIn.Read(title);
+				bsIn.Read(description);
+				bsIn.Read(numOptions);
+				for (int i = 0; i < numOptions; i++)
+				{
+					bsIn.Read(option);
+					options.push_back(option.C_String());
+				}
+
+				// Update the menu display.
+				menuDisplay.NewMenu(title.C_String(), description.C_String(), options);
+				menuDisplay.Display(handle);
+
+				break;
+			}
+			case ID_MENU_QUIT: // The client has chosen to quit the game.
+			{
+				printf("Quitting the game...\n");
+				done = true;
+				break;
+			}
+			default:
+				printf("Message with identifier %i has arrived.\n",
+					packet->data[0]);
+				break;
+			}
+		}
+	}
+
+	Keyboard::terminate();
 }
 
 //-----------------------------------------------------------------------------

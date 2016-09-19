@@ -9,6 +9,7 @@ class MainMenu: public Menu
 public:
 	MainMenu();
 
+	void OnEnter(GameData* game, PlayerInfo* player) override;
 	void OnChoose(int option, GameData* game, PlayerInfo* player) override;
 
 private:

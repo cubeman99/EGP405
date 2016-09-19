@@ -18,7 +18,7 @@ PlayerInfo* GameData::ConnectPlayer(const RakNetGUID& guid)
 
 		PlayerInfo* player = new PlayerInfo(guid);
 
-		player->m_menuSystem.Init(&m_mainMenu);
+		player->m_menuSystem.Init(&m_mainMenu, this, player);
 		player->m_health = 0;
 
 		m_players[guid] = player;
@@ -40,7 +40,7 @@ PlayerInfo* GameData::GetPlayerInfo(const RakNetGUID& guid)
 
 
 GameData::GameData() :
-	m_bankGold(0)
+	m_bankGold(80)
 {
 }
 

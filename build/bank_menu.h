@@ -8,6 +8,7 @@ class BankMenu : public Menu
 public:
 	BankMenu();
 
+	void OnEnter(GameData* game, PlayerInfo* player) override;
 	void OnChoose(int option, GameData* game, PlayerInfo* player) override;
 
 private:

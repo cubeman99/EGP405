@@ -13,7 +13,7 @@ Menu* MenuSystem::GetCurrentMenu()
 	return m_menuStack.top();
 }
 
-void MenuSystem::Init(Menu* menu)
+void MenuSystem::Init(Menu* menu, GameData* game, PlayerInfo* player)
 {
 	// Clear the menu stack first.
 	while (!m_menuStack.empty())
@@ -22,14 +22,19 @@ void MenuSystem::Init(Menu* menu)
 	}
 
 	m_menuStack.push(menu);
+	menu->OnEnter(game, player);
 }
 
-void MenuSystem::EnterMenu(Menu* menu)
+void MenuSystem::EnterMenu(Menu* menu, GameData* game, PlayerInfo* player)
 {
 	m_menuStack.push(menu);
+	menu->OnEnter(game, player);
 }
 
-void MenuSystem::ExitMenu()
+void MenuSystem::ExitMenu(GameData* game, PlayerInfo* player)
 {
 	m_menuStack.pop();
+
+	if (m_menuStack.size() > 0)
+		m_menuStack.top()->OnEnter(game, player);
 }
