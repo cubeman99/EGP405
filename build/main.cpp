@@ -6,37 +6,28 @@
 #include <sstream>
 #include <ctime>
 
-#include "game.h"
-#include "keyboard.h"
-#include "menu_display.h"
+#include "board.h"
 
 #include <RakNet/RakPeerInterface.h>
 #include <RakNet/MessageIdentifiers.h>
 #include <RakNet/BitStream.h>
 #include <RakNet/RakNetTypes.h>  // MessageID
 
-#define MAX_CLIENTS 10     // Max number of players.
+#define MAX_CLIENTS 1     // Max number of players.
 #define SERVER_PORT 60000
 
 using namespace std;
 using namespace RakNet;
-
 
 //-----------------------------------------------------------------------------
 // GameMessages enum
 //-----------------------------------------------------------------------------
 enum GameMessages
 {
-	ID_GAME_MESSAGE_1 = ID_USER_PACKET_ENUM + 1,
-
-	ID_MENU_OPTION,             // Client sends a chosen option ID to the server.
-	ID_MENU_DISPLAY_TEXT,       // Server sends text to client to display a menu.
-	ID_MENU_QUIT,
-
-	ID_MENU_UPDATE_DESCRIPTION, // Only the menu description has changed.
-	ID_MENU_NEW_MENU,           // A new menu has been entered.
+	ID_NEXT_MOVE = ID_USER_PACKET_ENUM + 1, // A player made a move.
 };
 
+/*
 
 //-----------------------------------------------------------------------------
 // RunServer
@@ -347,6 +338,204 @@ void RunClient()
 	Keyboard::terminate();
 }
 
+*/
+
+
+class GameData
+{
+public:
+	bool isMyTurn;
+	char mySymbol;
+	bool isConnected;
+	SystemAddress opponentAddress;
+	Board board;
+
+	GameData()
+	{
+		isMyTurn = false;
+		isConnected = false;
+	}
+};
+
+
+void ReceivePackets(RakPeerInterface* peer, GameData* gameData)
+{
+	Packet *packet;
+
+	for (packet = peer->Receive(); packet != NULL;
+		peer->DeallocatePacket(packet), packet = peer->Receive())
+	{
+		switch (packet->data[0])
+		{
+			// SERVER SPECIFIC MESSAGES:
+			case ID_REMOTE_DISCONNECTION_NOTIFICATION:
+			{
+				printf("Our opponent has disconnected.\n");
+				break;
+			}
+			case ID_REMOTE_CONNECTION_LOST:
+			{
+				printf("Our opponent has lost the connection.\n");
+				break;
+			}
+			case ID_REMOTE_NEW_INCOMING_CONNECTION: // A player has connected.
+			case ID_NEW_INCOMING_CONNECTION:
+			{
+				printf("Our opponent has connected.\n");
+
+				gameData->opponentAddress = packet->systemAddress;
+				gameData->isConnected = true;
+
+				break;
+			}
+
+			// CLIENT SPECIFIC MESSAGES:
+			case ID_NO_FREE_INCOMING_CONNECTIONS:
+			{
+				printf("That address is already playing a game!\n");
+				break;
+			}
+			case ID_CONNECTION_REQUEST_ACCEPTED:
+			{
+				printf("We have connected to our opponent!\n");
+				gameData->opponentAddress = packet->systemAddress;
+				gameData->isConnected = true;
+				break;
+			}
+
+			// SERVER/CLIENT SHARED MESSAGES:
+			case ID_DISCONNECTION_NOTIFICATION:
+			{
+				printf("We have been disconnected.\n");
+				gameData->isConnected = false;
+				break;
+			}
+			case ID_CONNECTION_LOST:
+			{
+				printf("Connection lost.\n");
+				gameData->isConnected = false;
+				break;
+			}
+			case ID_NEXT_MOVE:
+			{
+				char opponentSymbol;
+				unsigned char moveIndex;
+
+				// Read the packet and update the board.
+				BitStream bsIn(packet->data, packet->length, false);
+				bsIn.IgnoreBytes(sizeof(MessageID));
+				bsIn.Read(opponentSymbol);
+				bsIn.Read(moveIndex);
+
+				gameData->board.SetSpace(moveIndex, opponentSymbol);
+				gameData->isMyTurn = true;
+				break;
+			}
+		}
+	}
+}
+
+void PlayGame(bool isServer)
+{
+	RakPeerInterface *peer = RakPeerInterface::GetInstance();
+
+	GameData gameData;
+
+	// Server/client setup code.
+	if (isServer)
+	{
+		gameData.mySymbol = 'X';
+		gameData.isMyTurn = true;
+
+		// Setup the server socket.
+		printf("Starting the server.\n");
+		SocketDescriptor sd(SERVER_PORT, 0);
+		peer->Startup(MAX_CLIENTS, &sd, 1);
+		peer->SetMaximumIncomingConnections(MAX_CLIENTS); // Max number of players.
+	}
+	else
+	{
+		gameData.mySymbol = 'O';
+		gameData.isMyTurn = false;
+
+		// Setup the client socket.
+		SocketDescriptor sd;
+		peer->Startup(1, &sd, 1);
+
+		// Prompt for the IP address to connect to.
+		char str[512];
+		printf("Enter server IP or hit enter for 127.0.0.1\n");
+		gets_s(str, sizeof(str));
+		if (str[0] == 0)
+		{
+			strcpy_s(str, "127.0.0.1");
+		}
+
+		// Connect to the server.
+		printf("Starting the client.\n");
+		peer->Connect(str, SERVER_PORT, 0, 0);
+	}
+
+	// Wait for connection.
+	while (!gameData.isConnected)
+	{
+		ReceivePackets(peer, &gameData);
+	}
+
+	char winner;
+	bool isDraw;
+
+	// Game loop.
+	while (!gameData.board.CheckWin(winner, isDraw))
+	{
+		if (!gameData.isMyTurn)
+			printf("Waiting for opponent to move.\n");
+
+		// Wait for my turn.
+		while (!gameData.isMyTurn)
+		{
+			ReceivePackets(peer, &gameData);
+		}
+
+		gameData.board.Display();
+
+		// Check if opponent won.
+		if (gameData.board.CheckWin(winner, isDraw))
+			break;
+
+		printf("\nEnter space > ");
+
+		int input;
+		std::cin >> input;
+
+		input -= 1; // internal index is zero-based.
+
+		if (gameData.board.IsSpaceEmpty(input))
+		{
+			gameData.board.SetSpace(input, gameData.mySymbol);
+			gameData.isMyTurn = false;
+
+			// Send a next-move message.
+			BitStream bsOut;
+			bsOut.Write((MessageID) ID_NEXT_MOVE);
+			bsOut.Write((char) gameData.mySymbol);
+			bsOut.Write((unsigned char) input);
+			peer->Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED, 0,
+				gameData.opponentAddress, false);
+		}
+
+		gameData.board.Display();
+		printf("\n");
+	}
+
+	if (isDraw)
+		printf("The game ended in a tie!\n");
+	else
+		printf("Player %c won!\n", winner);
+
+	system("pause");
+}
+
 //-----------------------------------------------------------------------------
 // main
 //-----------------------------------------------------------------------------
@@ -360,11 +549,11 @@ int main(void)
 
 	if ((str[0] == 'c') || (str[0] == 'C'))
 	{
-		RunClient();
+		PlayGame(false);
 	}
 	else
 	{
-		RunServer();
+		PlayGame(true);
 	}
 	
 	RakPeerInterface::DestroyInstance(peer);
