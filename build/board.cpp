@@ -1,6 +1,7 @@
 #include "board.h"
 #include <stdio.h>
 #include <string.h>
+#include <Windows.h>
 
 
 #define NUM_WIN_POSSIBILITIES 8

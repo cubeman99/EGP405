@@ -284,8 +284,120 @@ void PlayGame(bool isServer)
 //-----------------------------------------------------------------------------
 // main
 //-----------------------------------------------------------------------------
+
+
+void JuliaSet()
+{
+	int winWidth = 199;
+	int winHeight = 120;
+
+	float xMin = -1.2f;
+	float xMax =  1.2f;
+	float yMin = -1.0f;
+	float yMax =  1.0f;
+
+
+	//xMin = 0.1f;
+	//xMax = 0.15f;
+	//yMin = 0.4f;
+	//yMax = 0.44f;
+
+
+	float real = -0.4f;
+	float imag = 0.6f;
+
+	int maxIterations = 100;
+
+	float cRe = -0.7;
+	float cIm = 0.27015;
+	cRe = -0.8f;
+	cIm = 0.156f;
+	cRe = -0.4f;
+	cIm = 0.6f;
+	cRe = 0.285f;
+	cIm = 0.01f;
+
+	/*cRe = -0.835f;
+	cIm = -0.2321f;*/
+
+	float newRe, newIm, oldRe, oldIm;
+
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+
+	SetConsoleScreenBufferSize(hConsole, {200, 200});
+
+	//SetConsoleTextAttribute(hConsole, rand() % 26);
+
+	//int colors[4]  = {0, 8, 7, 15};
+	int numColors = 7;
+	int colors[]  = {8, 7, 7, 7, 7, 15, 15};
+	char symbols[] = {255, 255, 176, 177, 178, 178, 219};
+
+	for (int y = 0; y < winHeight; y++)
+	{
+		for (int x = 0; x < winWidth; x++)
+		{
+			newRe = xMin + (((float) x / winWidth) * (xMax - xMin));
+			newIm = yMax - (((float) y / winHeight) * (yMax - yMin));
+
+			int i;
+			for (i = 0; i < maxIterations; i++)
+			{
+				//remember value of previous iteration
+				oldRe = newRe;
+				oldIm = newIm;
+				//the actual iteration, the real and imaginary part are calculated
+				newRe = oldRe * oldRe - oldIm * oldIm + cRe;
+				newIm = 2 * oldRe * oldIm + cIm;
+
+				//if the point is outside the circle with radius 2: stop
+				if ((newRe * newRe + newIm * newIm) > 4)
+					break;
+			}
+
+			int p = (i * numColors) / (maxIterations + 1);
+			if (p >= maxIterations)
+				p = 0;
+			SetConsoleTextAttribute(hConsole, colors[p]);
+
+			//printf("%c", (i < maxIterations) ? 'X' : ' ');
+
+			//printf("%c", (i < maxIterations) ? '#' : ' ');
+			//printf("%c", symbols[p]);
+
+			if (i < maxIterations)
+				SetConsoleTextAttribute(hConsole, 9 + (i % 6));
+			else
+				SetConsoleTextAttribute(hConsole, 0);
+			printf("%c", (char) 219);
+		}
+		printf("\n");
+	}
+
+}
+
 int main(void)
 {
+	JuliaSet();
+	system("pause");
+	return 0;
+
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+
+	for (int i = 0; i < 10000; i++)
+	{
+		char c = (rand() % 256);
+
+		if (c == '\t' || c == '\n')
+			continue;
+
+		SetConsoleTextAttribute(hConsole, rand() % 26);
+		printf("%c", c);
+	}
+
+	system("pause");
+	return 0;
+
 	RakPeerInterface *peer = RakPeerInterface::GetInstance();
 
 	char str[512];
