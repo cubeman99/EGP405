@@ -4,6 +4,11 @@ build/*.db
 build/*.opendb
 build/*.suo
 
+build/Client/*.sdf
+build/Client/*.db
+build/Client/*.opendb
+build/Client/*.suo
+
 build/.vs/
 build/[Dd]ebug
 build/[Rr]elease

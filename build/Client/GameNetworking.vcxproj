@@ -39,18 +39,22 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)Client\$(Configuration)\</OutDir>
+    <IntDir>Client\$(Configuration)\</IntDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\SDL2\include;..\..\glew\include;..\..\raknet\include;..\Common</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\SDL2\include;..\..\raknet\include;..\Common;..\..\src;..\..\src\GameLib;..\..\src\Client;..\..\src\Common</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>../../SDL2/lib/x86;../../glew/lib/Release/Win32;../../raknet/lib/Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glew32.lib;SDL2.lib;SDL2main.lib;opengl32.lib;RakNet.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../../SDL2/lib/x86;../../raknet/lib/Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL2.lib;SDL2main.lib;opengl32.lib;RakNet.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -68,11 +72,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="board.cpp" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="..\..\src\Client\board.cpp" />
+    <ClCompile Include="..\..\src\Client\ClientApp.cpp" />
+    <ClCompile Include="..\..\src\Client\main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="board.h" />
+    <ClInclude Include="..\..\src\Client\board.h" />
+    <ClInclude Include="..\..\src\Client\ClientApp.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="Common.vcxproj">
+      <Project>{64a2963c-02c1-429c-b925-7d2efde69598}</Project>
+    </ProjectReference>
+    <ProjectReference Include="GameLib.vcxproj">
+      <Project>{492fa362-8699-4c8d-a352-31ccb7fd7b2c}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

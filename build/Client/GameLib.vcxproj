@@ -1,0 +1,129 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\3rdParty\glew\GLEW.H" />
+    <ClInclude Include="..\..\src\3rdParty\glew\GLXEW.H" />
+    <ClInclude Include="..\..\src\3rdParty\glew\wglew.h" />
+    <ClInclude Include="..\..\src\3rdParty\lodepng\lodepng.h" />
+    <ClInclude Include="..\..\src\GameLib\Application.h" />
+    <ClInclude Include="..\..\src\GameLib\graphics\Color.h" />
+    <ClInclude Include="..\..\src\GameLib\graphics\Graphics.h" />
+    <ClInclude Include="..\..\src\GameLib\graphics\OpenGLIncludes.h" />
+    <ClInclude Include="..\..\src\GameLib\graphics\Renderer.h" />
+    <ClInclude Include="..\..\src\GameLib\graphics\RenderParams.h" />
+    <ClInclude Include="..\..\src\GameLib\graphics\Shader.h" />
+    <ClInclude Include="..\..\src\GameLib\graphics\SpriteFont.h" />
+    <ClInclude Include="..\..\src\GameLib\graphics\Window.h" />
+    <ClInclude Include="..\..\src\GameLib\input\Keyboard.h" />
+    <ClInclude Include="..\..\src\GameLib\input\Mouse.h" />
+    <ClInclude Include="..\..\src\GameLib\math\MathLib.h" />
+    <ClInclude Include="..\..\src\GameLib\math\Matrix4f.h" />
+    <ClInclude Include="..\..\src\GameLib\math\Polygonf.h" />
+    <ClInclude Include="..\..\src\GameLib\math\Quaternion.h" />
+    <ClInclude Include="..\..\src\GameLib\math\Rect2f.h" />
+    <ClInclude Include="..\..\src\GameLib\math\Vector2f.h" />
+    <ClInclude Include="..\..\src\GameLib\math\Vector3f.h" />
+    <ClInclude Include="..\..\src\GameLib\math\Vector4f.h" />
+    <ClInclude Include="..\..\src\GameLib\util\Random.h" />
+    <ClInclude Include="..\..\src\GameLib\util\Timing.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\3rdParty\glew\GLEW.C" />
+    <ClCompile Include="..\..\src\3rdParty\glew\glewinfo.c" />
+    <ClCompile Include="..\..\src\3rdParty\lodepng\lodepng.cpp" />
+    <ClCompile Include="..\..\src\GameLib\Application.cpp" />
+    <ClCompile Include="..\..\src\GameLib\graphics\Color.cpp" />
+    <ClCompile Include="..\..\src\GameLib\graphics\Graphics.cpp" />
+    <ClCompile Include="..\..\src\GameLib\graphics\Renderer.cpp" />
+    <ClCompile Include="..\..\src\GameLib\graphics\RenderParams.cpp" />
+    <ClCompile Include="..\..\src\GameLib\graphics\Shader.cpp" />
+    <ClCompile Include="..\..\src\GameLib\graphics\SpriteFont.cpp" />
+    <ClCompile Include="..\..\src\GameLib\graphics\Window.cpp" />
+    <ClCompile Include="..\..\src\GameLib\input\Keyboard.cpp" />
+    <ClCompile Include="..\..\src\GameLib\input\Mouse.cpp" />
+    <ClCompile Include="..\..\src\GameLib\math\MathLib.cpp" />
+    <ClCompile Include="..\..\src\GameLib\math\Matrix4f.cpp" />
+    <ClCompile Include="..\..\src\GameLib\math\Polygonf.cpp" />
+    <ClCompile Include="..\..\src\GameLib\math\Quaternion.cpp" />
+    <ClCompile Include="..\..\src\GameLib\math\Rect2f.cpp" />
+    <ClCompile Include="..\..\src\GameLib\math\Vector2f.cpp" />
+    <ClCompile Include="..\..\src\GameLib\math\Vector3f.cpp" />
+    <ClCompile Include="..\..\src\GameLib\math\Vector4f.cpp" />
+    <ClCompile Include="..\..\src\GameLib\util\Random.cpp" />
+    <ClCompile Include="..\..\src\GameLib\util\Timing.cpp" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{492FA362-8699-4C8D-A352-31CCB7FD7B2C}</ProjectGuid>
+    <RootNamespace>GameNetworking</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)$(ProjectName)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectName)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\..\SDL2\include;..\..\raknet\include;..\Common;..\..\src\GameLib;..\..\src</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>GLEW_STATIC;</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>../../SDL2/lib/x86;../../glew/lib/Release/Win32;../../raknet/lib/Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glew32.lib;SDL2.lib;SDL2main.lib;opengl32.lib;RakNet.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
