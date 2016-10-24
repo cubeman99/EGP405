@@ -35,5 +35,8 @@
     <ClInclude Include="..\..\src\Common\Slime.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\Common\Messages.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

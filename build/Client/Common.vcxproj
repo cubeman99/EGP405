@@ -18,6 +18,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\src\Common\Ball.h" />
     <ClInclude Include="..\..\src\Common\Config.h" />
+    <ClInclude Include="..\..\src\Common\Messages.h" />
     <ClInclude Include="..\..\src\Common\Slime.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

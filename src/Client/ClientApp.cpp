@@ -3,9 +3,43 @@
 #include <Common/Config.h>
 #include <math/MathLib.h>
 
-ClientApp::ClientApp()
-{
+using namespace RakNet;
 
+ClientApp::ClientApp(RakNet::RakPeerInterface* peerInterface) :
+	m_peerInterface(peerInterface)
+{
+	m_player = new Slime(
+		m_config.SLIME_COLORS[0],
+		m_config.SLIME_RADIUS,
+		Vector2f(m_config.VIEW_WIDTH * 0.25f, m_config.FLOOR_Y));
+}
+
+ClientApp::~ClientApp()
+{
+	// Delete all players.
+	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
+	{
+		delete it->second;
+	}
+
+	m_players.clear();
+	m_player = NULL;
+}
+
+void ClientApp::ReadConnectionAcceptedPacket(RakNet::Packet* packet)
+{
+	int playerId;
+
+	m_serverGuid = packet->guid;
+
+	BitStream bsIn(packet->data, packet->length, false);
+	bsIn.IgnoreBytes(sizeof(MessageID));
+	bsIn.Read(playerId);
+
+	printf("Connection Request Accepted. We are player ID %d.\n", playerId);
+
+	m_player->SetPlayerId(playerId);
+	m_players[playerId] = m_player;
 }
 
 void ClientApp::OnInitialize()
@@ -13,16 +47,15 @@ void ClientApp::OnInitialize()
 	m_ball = Ball(m_config.BALL_COLOR, m_config.BALL_RADIUS,
 		Vector2f(m_config.VIEW_WIDTH * 0.25f,
 			m_config.FLOOR_Y - m_config.BALL_SERVE_HEIGHT));
-
 	
-	m_slimes.push_back(Slime(Color::RED, m_config.SLIME_RADIUS,
+	/*m_slimes.push_back(Slime(Color::RED, m_config.SLIME_RADIUS,
 		Vector2f(m_config.VIEW_WIDTH * 0.25f,
 			m_config.FLOOR_Y)));
 	m_slimes.push_back(Slime(Color::GREEN, m_config.SLIME_RADIUS,
 		Vector2f(m_config.VIEW_WIDTH * 0.75f,
 			m_config.FLOOR_Y)));
 	m_slimes[0].SetTeamIndex(0);
-	m_slimes[1].SetTeamIndex(1);
+	m_slimes[1].SetTeamIndex(1);*/
 
 	m_state = STATE_CHOOSE_COLOR;
 
@@ -51,15 +84,26 @@ void ClientApp::OnInitialize()
 
 void ClientApp::OnUpdate(float timeDelta)
 {
+	// Ball interpolation.
+	if (m_state == STATE_PLAY_GAME)
+	{
+		m_ball.SetPosition(m_ball.GetPosition() + m_ball.GetVelocity());
+		m_ball.SetVelocity(m_ball.GetVelocity() + Vector2f(0.0f, m_config.BALL_GRAVITY));
+	}
+
+	ReceivePackets();
+
 	if (GetKeyboard()->IsKeyPressed(Keys::ESCAPE))
 	{
 		Quit();
+		BitStream bsOut;
+		bsOut.Write((MessageID) GameMessages::DISCONNECTED);
+		m_peerInterface->Send(&bsOut, HIGH_PRIORITY,
+			RELIABLE_ORDERED, 0, m_serverGuid, false);
 		return;
 	}
 
 	Vector2f mousePos((float) GetMouse()->GetX(), (float) GetMouse()->GetY());
-
-	Slime* player = &m_slimes[0];
 
 	if (m_state == STATE_CHOOSE_COLOR)
 	{
@@ -71,7 +115,7 @@ void ClientApp::OnUpdate(float timeDelta)
 			if (mousePos.DistTo(m_chooseColorButtons[i]) < m_chooseColorButtonRadius * 1.2f)
 			{
 				m_selectedColorButtonIndex = i;
-				player->SetColor(m_config.SLIME_COLORS[i]);
+				m_player->SetColor(m_config.SLIME_COLORS[i]);
 			}
 		}
 
@@ -82,7 +126,7 @@ void ClientApp::OnUpdate(float timeDelta)
 			m_state = STATE_CHOOSE_TEAM;
 		}
 
-		player->SetPosition(Vector2f(m_config.VIEW_WIDTH * 0.5f, m_config.VIEW_HEIGHT * 0.9f));
+		m_player->SetPosition(Vector2f(m_config.VIEW_WIDTH * 0.5f, m_config.VIEW_HEIGHT * 0.9f));
 	}
 	else if (m_state == STATE_CHOOSE_TEAM)
 	{
@@ -94,7 +138,7 @@ void ClientApp::OnUpdate(float timeDelta)
 			if (m_joinTeamButtons[i].Contains(mousePos))
 			{
 				m_selectedColorButtonIndex = i;
-				player->SetTeamIndex(1 - i);
+				m_player->SetTeamIndex(1 - i);
 			}
 		}
 
@@ -103,20 +147,35 @@ void ClientApp::OnUpdate(float timeDelta)
 			GetMouse()->IsButtonPressed(MouseButtons::LEFT))
 		{
 			m_state = STATE_PLAY_GAME;
-			player->SetTeamIndex(m_selectedColorButtonIndex);
-			player->SetPosition(Vector2f(
-				m_config.VIEW_WIDTH * (0.25f + (0.5f * player->GetTeamIndex())),
+			m_player->SetTeamIndex(m_selectedColorButtonIndex);
+			m_player->SetPosition(Vector2f(
+				m_config.VIEW_WIDTH * (0.25f + (0.5f * m_player->GetTeamIndex())),
 				m_config.FLOOR_Y));
+
+			BitStream bsOut;
+			bsOut.Write((MessageID) GameMessages::JOIN_GAME);
+			bsOut.Write(m_player->GetName().c_str());
+			bsOut.Write(m_player->GetTeamIndex());
+			bsOut.Write(m_player->GetColor());
+			m_peerInterface->Send(&bsOut, HIGH_PRIORITY,
+				RELIABLE_ORDERED, 0, m_serverGuid, false);
+			printf("Joining team %d\n", m_player->GetTeamIndex());
 		}
 		else
 		{
-			player->SetPosition(Vector2f(m_config.VIEW_WIDTH * 0.5f, m_config.VIEW_HEIGHT * 0.9f));
+			m_player->SetPosition(Vector2f(m_config.VIEW_WIDTH * 0.5f, m_config.VIEW_HEIGHT * 0.9f));
 		}
 	}
 	else if (m_state == STATE_PLAY_GAME)
 	{
 		UpdatePlayer();
-		UpdateBall();
+
+		BitStream bsOut;
+		bsOut.Write((MessageID) GameMessages::CLIENT_UPDATE_TICK);
+		bsOut.Write(m_player->GetPosition());
+		bsOut.Write(m_player->GetVelocity());
+		m_peerInterface->Send(&bsOut, HIGH_PRIORITY, UNRELIABLE,
+			0, m_serverGuid, false);
 	}
 	else if (m_state == STATE_WAIT_FOR_SERVE)
 	{
@@ -124,92 +183,15 @@ void ClientApp::OnUpdate(float timeDelta)
 	}
 }
 
-void ClientApp::UpdateBall()
-{
-	Vector2f position = m_ball.GetPosition();
-	Vector2f velocity = m_ball.GetVelocity();
-
-	velocity.y += m_config.BALL_GRAVITY;
-	position += velocity;
-
-	// Collide with slimes.
-	for (unsigned int i = 0; i < m_slimes.size(); i++)
-	{
-		Slime& slime = m_slimes[i];
-
-		Vector2f slimePos = slime.GetPosition();
-		Vector2f slimeVel = slime.GetVelocity();
-		Vector2f relPosition = position - slimePos;
-		Vector2f relVelocity = velocity - slimeVel;
-		float distSqr = relPosition.LengthSquared();
-		float radiusSum = m_ball.GetRadius() + slime.GetRadius();
-
-		if (relPosition.y < 0.0f && distSqr <= (radiusSum * radiusSum) && distSqr > 4.0f)
-		{
-			float dist = Math::Sqrt(distSqr);
-			Vector2f slime2ball = relPosition / dist;
-			float proj = slime2ball.Dot(relVelocity);
-			position = slimePos + (slime2ball * radiusSum);
-
-			if (proj <= 0.0f)
-			{
-				velocity += slimeVel - (2.0f * slime2ball * proj);
-				velocity.y -= m_config.BALL_GRAVITY * 0.5f;
-
-				if (velocity.x < -15)
-					velocity.x = -15;
-				if (velocity.x > 15)
-					velocity.x = 15;
-				if (velocity.y < -22)
-					velocity.y = -22;
-				if (velocity.y > 22)
-					velocity.y = 22;
-			}
-		}
-	}
-
-	// Collide with the net.
-	// TODO: Circle to Rectangle (line?) collision.
-
-	// Collide with the floor and walls.
-	if (position.y + m_ball.GetRadius() >= m_config.FLOOR_Y)
-	{
-		position.y = m_config.FLOOR_Y - m_ball.GetRadius();
-		if (velocity.y > 0.0f)
-			velocity.y = -velocity.y;
-	}
-	if (position.x - m_ball.GetRadius() <= 0.0f)
-	{
-		position.x = m_ball.GetRadius();
-		if (velocity.x < 0.0f)
-			velocity.x = -velocity.x;
-	}
-	else if (position.x + m_ball.GetRadius() >= m_config.VIEW_WIDTH)
-	{
-		position.x = m_config.VIEW_WIDTH - m_ball.GetRadius();
-		if (velocity.x > 0.0f)
-			velocity.x = -velocity.x;
-	}
-
-	// Limit max speed.
-	float velLength = velocity.Length();
-	if (velLength > m_config.BALL_MAX_SPEED)
-		velocity *= m_config.BALL_MAX_SPEED / velLength;
-	
-	m_ball.SetPosition(position);
-	m_ball.SetVelocity(velocity);
-}
-
 void ClientApp::UpdatePlayer()
 {
-	Slime* player = &m_slimes[0];
-	Vector2f pos = player->GetPosition();
-	Vector2f vel = player->GetVelocity();
+	Vector2f pos = m_player->GetPosition();
+	Vector2f vel = m_player->GetVelocity();
 
 	float minX;
 	float maxX;
 
-	if (player->GetTeamIndex() == 0)
+	if (m_player->GetTeamIndex() == 0)
 	{
 		minX = 0.0f;
 		maxX = (m_config.VIEW_WIDTH - m_config.NET_WIDTH) * 0.5f;
@@ -235,19 +217,105 @@ void ClientApp::UpdatePlayer()
 		pos.y = m_config.FLOOR_Y;
 		vel.y = 0;
 	}
-	if (pos.x - player->GetRadius() <= minX)
+	if (pos.x - m_player->GetRadius() <= minX)
 	{
-		pos.x = minX + player->GetRadius();
+		pos.x = minX + m_player->GetRadius();
 		vel.x = 0;
 	}
-	else if (pos.x + player->GetRadius() >= maxX)
+	else if (pos.x + m_player->GetRadius() >= maxX)
 	{
-		pos.x = maxX - player->GetRadius();
+		pos.x = maxX - m_player->GetRadius();
 		vel.x = 0;
 	}
 
-	player->SetPosition(pos);
-	player->SetVelocity(vel);
+	m_player->SetPosition(pos);
+	m_player->SetVelocity(vel);
+}
+
+void ClientApp::ReceivePackets()
+{
+	Packet *packet;
+
+	for (packet = m_peerInterface->Receive(); packet != NULL;
+		m_peerInterface->DeallocatePacket(packet),
+		packet = m_peerInterface->Receive())
+	{
+		switch (packet->data[0])
+		{
+		// SERVER/CLIENT SHARED MESSAGES:
+		case ID_DISCONNECTION_NOTIFICATION:
+		{
+			printf("We have been disconnected.\n");
+			break;
+		}
+		case ID_CONNECTION_LOST:
+		{
+			printf("Connection lost.\n");
+			break;
+		}
+		case GameMessages::ACCEPT_CONNECTION:
+		{
+			int playerId;
+			BitStream bsIn(packet->data, packet->length, false);
+			bsIn.IgnoreBytes(sizeof(MessageID));
+			bsIn.Read(playerId);
+			m_player->SetPlayerId(playerId);
+
+			while (true)
+			{
+				Color color;
+				RakString name;
+				int teamIndex;
+				bsIn.Read(playerId);
+				if (playerId < 0)
+					break;
+				bsIn.Read(name);
+				bsIn.Read(teamIndex);
+				bsIn.Read(color);
+
+				Slime* slime = new Slime;
+				slime->SetRadius(m_config.SLIME_RADIUS);
+				slime->SetName(name.C_String());
+				slime->SetTeamIndex(teamIndex);
+				slime->SetColor(color);
+				m_players[playerId] = slime;
+			}
+
+			printf("Connection Request Accepted. We are player ID %d.\n", m_player->GetPlayerId());
+			break;
+		}
+		case GameMessages::UPDATE_TICK:
+		{
+			Vector2f ballPos;
+			Vector2f ballVel;
+			
+			BitStream bsIn(packet->data, packet->length, false);
+			bsIn.IgnoreBytes(sizeof(MessageID));
+			bsIn.Read(ballPos);
+			bsIn.Read(ballVel);
+			m_ball.SetPosition(ballPos);
+			m_ball.SetVelocity(ballVel);
+
+			while (true)
+			{
+				int playerId;
+				Color color;
+				RakString name;
+				bsIn.Read(playerId);
+				if (playerId < 0)
+					break;
+				bsIn.Read(ballPos);
+				bsIn.Read(ballVel);
+				if (m_players.find(playerId) != m_players.end())
+				{
+					m_players[playerId]->SetPosition(ballPos);
+					m_players[playerId]->SetVelocity(ballVel);
+				}
+			}
+			break;
+		}
+		}
+	}
 }
 
 void ClientApp::DrawSlime(Graphics& g, const Slime& slime, const Vector2f& lookAtPoint)
@@ -318,12 +386,13 @@ void ClientApp::OnRender()
 	g.FillCircle(m_ball.GetPosition(), m_ball.GetRadius(), m_ball.GetColor());
 
 	// Draw the slimes.
-	for (unsigned int i = 0; i < m_slimes.size(); i++)
+	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
 	{
+		Slime* slime = it->second;
 		Vector2f lookAtPoint = m_ball.GetPosition();
-		if (i == 0 && (m_state == STATE_CHOOSE_COLOR || m_state == STATE_CHOOSE_TEAM))
+		if (slime == m_player && (m_state == STATE_CHOOSE_COLOR || m_state == STATE_CHOOSE_TEAM))
 			lookAtPoint = mousePos;
-		DrawSlime(g, m_slimes[i], lookAtPoint);
+		DrawSlime(g, *slime, lookAtPoint);
 	}
 
 	// Draw state-specific stuff.

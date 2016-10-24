@@ -9,6 +9,12 @@ build/Client/*.db
 build/Client/*.opendb
 build/Client/*.suo
 
+build/Client/.vs/
+build/Client/Client/
+build/Client/Server/
+build/Client/Common/
+build/Client/GameLib/
+
 build/.vs/
 build/[Dd]ebug
 build/[Rr]elease
