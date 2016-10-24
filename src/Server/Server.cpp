@@ -149,7 +149,8 @@ void Server::ReceivePackets()
 				if (slime->HasJoinedGame())
 				{
 					RakString name = slime->GetName().c_str();
-					bsOut.Write(slime->GetPlayerId());
+					//bsOut.Write(slime->GetPlayerId());
+					bsOut.Write(it->first);
 					bsOut.Write(name);
 					bsOut.Write(slime->GetTeamIndex());
 					bsOut.Write(slime->GetColor());
@@ -162,6 +163,7 @@ void Server::ReceivePackets()
 			printf("Player ID %d has connected.\n", m_playerIdCounter);
 			m_guidToPlayerMap[packet->guid] = m_playerIdCounter;
 			m_players[m_playerIdCounter] = new Slime(Color::RED, m_config.SLIME_RADIUS, Vector2f::ZERO);
+			m_players[m_playerIdCounter]->SetPlayerId(m_playerIdCounter);
 			m_playerIdCounter++;
 
 			break;
@@ -227,6 +229,14 @@ void Server::ReceivePackets()
 			player->SetJoinedGame(true);
 
 			printf("%s (ID %d) has joined team %d!\n", name.C_String(), playerId, teamIndex);
+
+
+			BitStream bsOut;
+			bsOut.Write((MessageID) GameMessages::PLAYER_JOINED);
+			bsOut.Write(m_playerIdCounter);
+			m_peerInterface->Send(&bsOut, HIGH_PRIORITY,
+				RELIABLE_ORDERED, 0, packet->systemAddress, false);
+
 			break;
 		}
 		case GameMessages::CLIENT_UPDATE_TICK:

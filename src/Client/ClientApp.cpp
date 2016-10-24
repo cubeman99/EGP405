@@ -35,11 +35,31 @@ void ClientApp::ReadConnectionAcceptedPacket(RakNet::Packet* packet)
 	BitStream bsIn(packet->data, packet->length, false);
 	bsIn.IgnoreBytes(sizeof(MessageID));
 	bsIn.Read(playerId);
-
-	printf("Connection Request Accepted. We are player ID %d.\n", playerId);
-
 	m_player->SetPlayerId(playerId);
-	m_players[playerId] = m_player;
+
+	while (true)
+	{
+		Color color;
+		RakString name;
+		int teamIndex;
+		bsIn.Read(playerId);
+		if (playerId < 0)
+			break;
+		bsIn.Read(name);
+		bsIn.Read(teamIndex);
+		bsIn.Read(color);
+
+		Slime* slime = new Slime;
+		slime->SetRadius(m_config.SLIME_RADIUS);
+		slime->SetName(name.C_String());
+		slime->SetTeamIndex(teamIndex);
+		slime->SetColor(color);
+		m_players[playerId] = slime;
+	}
+
+	printf("Connection Request Accepted. We are player ID %d.\n", m_player->GetPlayerId());
+
+	m_players[m_player->GetPlayerId()] = m_player;
 }
 
 void ClientApp::OnInitialize()
@@ -253,37 +273,6 @@ void ClientApp::ReceivePackets()
 			printf("Connection lost.\n");
 			break;
 		}
-		case GameMessages::ACCEPT_CONNECTION:
-		{
-			int playerId;
-			BitStream bsIn(packet->data, packet->length, false);
-			bsIn.IgnoreBytes(sizeof(MessageID));
-			bsIn.Read(playerId);
-			m_player->SetPlayerId(playerId);
-
-			while (true)
-			{
-				Color color;
-				RakString name;
-				int teamIndex;
-				bsIn.Read(playerId);
-				if (playerId < 0)
-					break;
-				bsIn.Read(name);
-				bsIn.Read(teamIndex);
-				bsIn.Read(color);
-
-				Slime* slime = new Slime;
-				slime->SetRadius(m_config.SLIME_RADIUS);
-				slime->SetName(name.C_String());
-				slime->SetTeamIndex(teamIndex);
-				slime->SetColor(color);
-				m_players[playerId] = slime;
-			}
-
-			printf("Connection Request Accepted. We are player ID %d.\n", m_player->GetPlayerId());
-			break;
-		}
 		case GameMessages::UPDATE_TICK:
 		{
 			Vector2f ballPos;
@@ -306,10 +295,13 @@ void ClientApp::ReceivePackets()
 					break;
 				bsIn.Read(ballPos);
 				bsIn.Read(ballVel);
-				if (m_players.find(playerId) != m_players.end())
+				if (playerId != m_player->GetPlayerId())
 				{
-					m_players[playerId]->SetPosition(ballPos);
-					m_players[playerId]->SetVelocity(ballVel);
+					if (m_players.find(playerId) != m_players.end())
+					{
+						m_players[playerId]->SetPosition(ballPos);
+						m_players[playerId]->SetVelocity(ballVel);
+					}
 				}
 			}
 			break;
