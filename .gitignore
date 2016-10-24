@@ -3,11 +3,13 @@ build/*.sdf
 build/*.db
 build/*.opendb
 build/*.suo
+build/*.user
 
 build/Client/*.sdf
 build/Client/*.db
 build/Client/*.opendb
 build/Client/*.suo
+build/Client/*.user
 
 build/Client/.vs/
 build/Client/Client/

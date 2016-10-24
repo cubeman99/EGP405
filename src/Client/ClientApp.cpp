@@ -67,15 +67,11 @@ void ClientApp::OnInitialize()
 	m_ball = Ball(m_config.BALL_COLOR, m_config.BALL_RADIUS,
 		Vector2f(m_config.VIEW_WIDTH * 0.25f,
 			m_config.FLOOR_Y - m_config.BALL_SERVE_HEIGHT));
-	
-	/*m_slimes.push_back(Slime(Color::RED, m_config.SLIME_RADIUS,
-		Vector2f(m_config.VIEW_WIDTH * 0.25f,
-			m_config.FLOOR_Y)));
-	m_slimes.push_back(Slime(Color::GREEN, m_config.SLIME_RADIUS,
-		Vector2f(m_config.VIEW_WIDTH * 0.75f,
-			m_config.FLOOR_Y)));
-	m_slimes[0].SetTeamIndex(0);
-	m_slimes[1].SetTeamIndex(1);*/
+
+	m_teams[0] = Team(0, "1", Rect2f(0.0f, 0.0f,
+		(m_config.VIEW_WIDTH - m_config.NET_WIDTH) * 0.5f, m_config.FLOOR_Y));
+	m_teams[1] = Team(1, "2", Rect2f((m_config.VIEW_WIDTH + m_config.NET_WIDTH) * 0.5f,
+		0.0f, (m_config.VIEW_WIDTH - m_config.NET_WIDTH) * 0.5f, m_config.FLOOR_Y));
 
 	m_state = STATE_CHOOSE_COLOR;
 
@@ -115,11 +111,11 @@ void ClientApp::OnUpdate(float timeDelta)
 
 	if (GetKeyboard()->IsKeyPressed(Keys::ESCAPE))
 	{
-		Quit();
 		BitStream bsOut;
 		bsOut.Write((MessageID) GameMessages::DISCONNECTED);
 		m_peerInterface->Send(&bsOut, HIGH_PRIORITY,
 			RELIABLE_ORDERED, 0, m_serverGuid, false);
+		Quit();
 		return;
 	}
 
@@ -207,46 +203,41 @@ void ClientApp::UpdatePlayer()
 {
 	Vector2f pos = m_player->GetPosition();
 	Vector2f vel = m_player->GetVelocity();
+	Team* team = &m_teams[m_player->GetTeamIndex()];
+	float minX = team->GetPlayRegion().GetLeft();
+	float maxX = team->GetPlayRegion().GetRight();
 
-	float minX;
-	float maxX;
+	// Integrate gravitational force.
+	vel.y += m_config.SLIME_GRAVITY;
 
-	if (m_player->GetTeamIndex() == 0)
-	{
-		minX = 0.0f;
-		maxX = (m_config.VIEW_WIDTH - m_config.NET_WIDTH) * 0.5f;
-	}
-	else
-	{
-		minX = (m_config.VIEW_WIDTH + m_config.NET_WIDTH) * 0.5f;
-		maxX = m_config.VIEW_WIDTH;
-	}
-
+	// Update controls.
 	if (GetKeyboard()->IsKeyDown(Keys::LEFT))
 		pos.x -= 4.5f;
 	if (GetKeyboard()->IsKeyDown(Keys::RIGHT))
 		pos.x += 4.5f;
-	if (GetKeyboard()->IsKeyPressed(Keys::UP) && pos.y >= m_config.FLOOR_Y)
+	if (GetKeyboard()->IsKeyDown(Keys::UP) && pos.y >= m_config.FLOOR_Y)
 		vel.y = -m_config.SLIME_JUMP_SPEED;
 
-	vel.y += m_config.SLIME_GRAVITY;
-	pos += vel;
-
+	// Collide with floor and walls.
 	if (pos.y >= m_config.FLOOR_Y)
 	{
 		pos.y = m_config.FLOOR_Y;
-		vel.y = 0;
+		if (vel.y > 0.0f)
+			vel.y = 0.0f;
 	}
 	if (pos.x - m_player->GetRadius() <= minX)
 	{
 		pos.x = minX + m_player->GetRadius();
-		vel.x = 0;
+		vel.x = 0.0f;
 	}
 	else if (pos.x + m_player->GetRadius() >= maxX)
 	{
 		pos.x = maxX - m_player->GetRadius();
-		vel.x = 0;
+		vel.x = 0.0f;
 	}
+
+	// Integrate velocity.
+	pos += vel;
 
 	m_player->SetPosition(pos);
 	m_player->SetVelocity(vel);
@@ -271,6 +262,90 @@ void ClientApp::ReceivePackets()
 		case ID_CONNECTION_LOST:
 		{
 			printf("Connection lost.\n");
+			break;
+		}
+		case GameMessages::PLAYER_JOINED:
+		{
+			int playerId;
+			RakString name;
+			Color color;
+			int teamIndex;
+
+			// Read the packet.
+			BitStream bsIn(packet->data, packet->length, false);
+			bsIn.IgnoreBytes(sizeof(MessageID));
+			bsIn.Read(playerId);
+			bsIn.Read(name);
+			bsIn.Read(teamIndex);
+			bsIn.Read(color);
+
+			if (playerId != m_player->GetPlayerId())
+			{
+				Slime* player;
+				if (m_players.find(playerId) != m_players.end())
+				{
+					player = m_players[playerId];
+				}
+				else
+				{
+					player = new Slime();
+					m_players[playerId] = player;
+				}
+				player->SetRadius(m_config.SLIME_RADIUS);
+				player->SetName(name.C_String());
+				player->SetTeamIndex(teamIndex);
+				player->SetColor(color);
+				player->SetJoinedGame(true);
+				printf("%s (ID %d) joined team %d!\n", name.C_String(), playerId, teamIndex);
+			}
+			break;
+		}
+		case GameMessages::PLAYER_LEFT:
+		{
+			int playerId;
+			RakString name;
+			Color color;
+			int teamIndex;
+
+			// Read the packet.
+			BitStream bsIn(packet->data, packet->length, false);
+			bsIn.IgnoreBytes(sizeof(MessageID));
+			bsIn.Read(playerId);
+			bsIn.Read(name);
+			bsIn.Read(teamIndex);
+			bsIn.Read(color);
+
+			if (playerId != m_player->GetPlayerId())
+			{
+				Slime* player = m_players[playerId];
+				printf("%s (ID %d) left the game.\n", player->GetName().c_str(), playerId);
+				delete player;
+				m_players.erase(playerId);
+			}
+			break;
+		}
+		case GameMessages::TEAM_SCORED:
+		{
+			int scoringTeamIndex;
+			BitStream bsIn(packet->data, packet->length, false);
+			bsIn.IgnoreBytes(sizeof(MessageID));
+			bsIn.Read(scoringTeamIndex);
+			m_teams[scoringTeamIndex].SetScore(m_teams[scoringTeamIndex].GetScore() + 1);
+			printf("Team %d scored! [Team 0: %d | Team 1: %d]\n",
+				scoringTeamIndex, m_teams[0].GetScore(), m_teams[1].GetScore());
+			m_state = STATE_WAIT_FOR_SERVE;
+			break;
+		}
+		case GameMessages::TEAM_SERVE:
+		{
+			if (m_state != STATE_CHOOSE_COLOR && m_state != STATE_CHOOSE_TEAM)
+			{
+				m_player->SetPosition(Vector2f(
+					m_config.VIEW_WIDTH * (0.25f + (0.5f * m_player->GetTeamIndex())),
+					m_config.FLOOR_Y));
+				m_player->SetVelocity(Vector2f::ZERO);
+				m_state = STATE_PLAY_GAME;
+			}
 			break;
 		}
 		case GameMessages::UPDATE_TICK:

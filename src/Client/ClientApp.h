@@ -7,14 +7,15 @@
 #include <RakNet/MessageIdentifiers.h>
 #include <GameLib/Application.h>
 #include <GameLib/graphics/Graphics.h>
-#include <Common/Config.h>
-#include <Common/Ball.h>
-#include <Common/Slime.h>
 #include <math/Vector2f.h>
 #include <math/Rect2f.h>
+#include "Config.h"
+#include "Ball.h"
+#include "Slime.h"
+#include "Team.h"
+#include "Messages.h"
 #include <vector>
 #include <map>
-#include "Messages.h"
 
 class ClientApp : public Application
 {
@@ -45,25 +46,19 @@ private:
 		STATE_WAIT_FOR_SERVE,
 	};
 
-	RakNet::RakPeerInterface* m_peerInterface;
+	typedef std::map<int, Slime*> PlayerMap;
 
+	RakNet::RakPeerInterface* m_peerInterface;
 	float m_chooseColorButtonRadius;
 	int m_selectedColorButtonIndex;
 	std::vector<Vector2f> m_chooseColorButtons;
 	std::vector<Rect2f> m_joinTeamButtons;
-
 	int m_state;
 	Config m_config;
 	Ball m_ball;
-
+	Team m_teams[2];
 	Slime* m_player;
-
-
-
-	typedef std::map<int, Slime*> PlayerMap;
-
 	PlayerMap m_players;
-
 	RakNet::RakNetGUID m_serverGuid;
 };
 

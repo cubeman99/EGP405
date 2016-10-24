@@ -14,12 +14,14 @@
     <ClCompile Include="..\..\src\Common\Ball.cpp" />
     <ClCompile Include="..\..\src\Common\Config.cpp" />
     <ClCompile Include="..\..\src\Common\Sime.cpp" />
+    <ClCompile Include="..\..\src\Common\Team.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\Common\Ball.h" />
     <ClInclude Include="..\..\src\Common\Config.h" />
     <ClInclude Include="..\..\src\Common\Messages.h" />
     <ClInclude Include="..\..\src\Common\Slime.h" />
+    <ClInclude Include="..\..\src\Common\Team.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{64A2963C-02C1-429C-B925-7D2EFDE69598}</ProjectGuid>

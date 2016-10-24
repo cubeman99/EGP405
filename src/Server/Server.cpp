@@ -57,6 +57,13 @@ int Server::Run()
 
 	double newTime;
 
+	m_state = STATE_WAIT_FOR_PLAYERS;
+	m_serveDelayTimer = 0.0f;
+	m_teams[0] = Team(0, "1", Rect2f(0.0f, 0.0f,
+		(m_config.VIEW_WIDTH - m_config.NET_WIDTH) * 0.5f, m_config.FLOOR_Y));
+	m_teams[1] = Team(1, "2", Rect2f((m_config.VIEW_WIDTH + m_config.NET_WIDTH) * 0.5f,
+		0.0f, (m_config.VIEW_WIDTH - m_config.NET_WIDTH) * 0.5f, m_config.FLOOR_Y));
+
 	while (m_isRunning)
 	{
 		newTime = Time::GetTime();
@@ -88,28 +95,61 @@ int Server::Run()
 
 void Server::Tick(float timeDelta)
 {
-	UpdateBall();
-	
-	BitStream bsOut;
-	bsOut.Write((MessageID) GameMessages::UPDATE_TICK);
-	bsOut.Write(m_ball.GetPosition());
-	bsOut.Write(m_ball.GetVelocity());
-	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
+	if (m_state == STATE_PLAY_GAME)
 	{
-		Slime* slime = it->second;
+		UpdateBall();
+	}
+	else if (m_state == STATE_WAIT_FOR_SERVE)
+	{
+		m_serveDelayTimer -= timeDelta;
 
-		if (slime->HasJoinedGame())
+		if (m_serveDelayTimer <= 0.0f)
 		{
-			RakString name = slime->GetName().c_str();
-			bsOut.Write(slime->GetPlayerId());
-			bsOut.Write(slime->GetPosition());
-			bsOut.Write(slime->GetVelocity());
+			// Position the ball for the serving team.
+			m_ball.SetPosition(Vector2f(
+				m_config.VIEW_WIDTH * (0.25f + (m_servingTeamIndex * 0.5f)),
+				m_config.FLOOR_Y - m_config.BALL_SERVE_HEIGHT));
+			m_ball.SetVelocity(Vector2f::ZERO);
+
+			// Tell the clients that the round has begun.
+			BitStream bsOut;
+			bsOut.Write((MessageID)GameMessages::TEAM_SERVE);
+			m_peerInterface->Send(&bsOut, HIGH_PRIORITY, UNRELIABLE,
+				0, RakNet::UNASSIGNED_RAKNET_GUID, true);
+
+			if (AreBothTeamsReady())
+			{
+				m_state = STATE_PLAY_GAME;
+			}
+			else
+			{
+				m_state = STATE_WAIT_FOR_PLAYERS;
+			}
 		}
 	}
-	bsOut.Write((int) -1);
+	
+	{
+		BitStream bsOut;
+		bsOut.Write((MessageID) GameMessages::UPDATE_TICK);
+		bsOut.Write(m_ball.GetPosition());
+		bsOut.Write(m_ball.GetVelocity());
+		for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
+		{
+			Slime* slime = it->second;
 
-	m_peerInterface->Send(&bsOut, HIGH_PRIORITY, UNRELIABLE,
-		0, RakNet::UNASSIGNED_RAKNET_GUID, true);
+			if (slime->HasJoinedGame())
+			{
+				RakString name = slime->GetName().c_str();
+				bsOut.Write(slime->GetPlayerId());
+				bsOut.Write(slime->GetPosition());
+				bsOut.Write(slime->GetVelocity());
+			}
+		}
+		bsOut.Write((int) -1);
+		m_peerInterface->Send(&bsOut, HIGH_PRIORITY, UNRELIABLE,
+			0, RakNet::UNASSIGNED_RAKNET_GUID, true);
+	}
+
 	
 	//GameMessages::UPDATE_TICK
 }
@@ -195,8 +235,15 @@ void Server::ReceivePackets()
 			int playerId = m_guidToPlayerMap[packet->guid];
 			Slime* player = m_players[playerId];
 			printf("Player ID %d has diconnected.\n", playerId);
+			delete player;
 			m_players.erase(playerId);
 			m_guidToPlayerMap.erase(packet->guid);
+
+			BitStream bsOut;
+			bsOut.Write((MessageID)GameMessages::PLAYER_LEFT);
+			bsOut.Write(playerId);
+			m_peerInterface->Send(&bsOut, HIGH_PRIORITY,
+				RELIABLE_ORDERED, 0, packet->systemAddress, true);
 			break;
 		}
 		case GameMessages::DISCONNECTED:
@@ -204,8 +251,15 @@ void Server::ReceivePackets()
 			int playerId = m_guidToPlayerMap[packet->guid];
 			Slime* player = m_players[playerId];
 			printf("Player ID %d has diconnected.\n", playerId);
+			delete player;
 			m_players.erase(playerId);
 			m_guidToPlayerMap.erase(packet->guid);
+
+			BitStream bsOut;
+			bsOut.Write((MessageID)GameMessages::PLAYER_LEFT);
+			bsOut.Write(playerId);
+			m_peerInterface->Send(&bsOut, HIGH_PRIORITY,
+				RELIABLE_ORDERED, 0, packet->systemAddress, true);
 			break;
 		}
 		case GameMessages::JOIN_GAME:
@@ -229,13 +283,26 @@ void Server::ReceivePackets()
 			player->SetJoinedGame(true);
 
 			printf("%s (ID %d) has joined team %d!\n", name.C_String(), playerId, teamIndex);
-
-
+			
+			// Tell the clients that a player has joined.
 			BitStream bsOut;
 			bsOut.Write((MessageID) GameMessages::PLAYER_JOINED);
-			bsOut.Write(m_playerIdCounter);
+			bsOut.Write(playerId);
+			bsOut.Write(name);
+			bsOut.Write(teamIndex);
+			bsOut.Write(color);
 			m_peerInterface->Send(&bsOut, HIGH_PRIORITY,
-				RELIABLE_ORDERED, 0, packet->systemAddress, false);
+				RELIABLE_ORDERED, 0, packet->systemAddress, true);
+
+			// Check if there is at least one ready player per team.
+			// If so, then start the match.
+			if (AreBothTeamsReady())
+			{
+				m_state = STATE_WAIT_FOR_SERVE;
+				m_serveDelayTimer = 1.0f;
+				m_servingTeamIndex = 0;
+				printf("There are enough players to start a match!\n");
+			}
 
 			break;
 		}
@@ -259,7 +326,6 @@ void Server::ReceivePackets()
 		}
 	}
 }
-
 
 void Server::UpdateBall()
 {
@@ -312,12 +378,6 @@ void Server::UpdateBall()
 	// TODO: Circle to Rectangle (line?) collision.
 
 	// Collide with the floor and walls.
-	if (position.y + m_ball.GetRadius() >= m_config.FLOOR_Y)
-	{
-		position.y = m_config.FLOOR_Y - m_ball.GetRadius();
-		if (velocity.y > 0.0f)
-			velocity.y = -velocity.y;
-	}
 	if (position.x - m_ball.GetRadius() <= 0.0f)
 	{
 		position.x = m_ball.GetRadius();
@@ -330,6 +390,20 @@ void Server::UpdateBall()
 		if (velocity.x > 0.0f)
 			velocity.x = -velocity.x;
 	}
+	if (position.y + m_ball.GetRadius() >= m_config.FLOOR_Y)
+	{
+		position.y = m_config.FLOOR_Y - m_ball.GetRadius();
+		velocity = Vector2f::ZERO;
+		m_servingTeamIndex = (position.x < m_config.VIEW_WIDTH * 0.5f ? 1 : 0);
+		m_state = STATE_WAIT_FOR_SERVE;
+		m_serveDelayTimer = 1.0f;
+
+		BitStream bsOut;
+		bsOut.Write((MessageID) GameMessages::TEAM_SCORED);
+		bsOut.Write(m_servingTeamIndex);
+		m_peerInterface->Send(&bsOut, HIGH_PRIORITY, UNRELIABLE,
+			0, RakNet::UNASSIGNED_RAKNET_GUID, true);
+	}
 
 	// Limit max speed.
 	float velLength = velocity.Length();
@@ -338,5 +412,18 @@ void Server::UpdateBall()
 
 	m_ball.SetPosition(position);
 	m_ball.SetVelocity(velocity);
+}
+
+bool Server::AreBothTeamsReady()
+{
+	// Check if there is at least one ready player per team.
+	bool isTeamReady[2] = { false, false };
+	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
+	{
+		if (it->second->HasJoinedGame())
+			isTeamReady[it->second->GetTeamIndex()] = true;
+	}
+
+	return (isTeamReady[0] && isTeamReady[1]);
 }
 
