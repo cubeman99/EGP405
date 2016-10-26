@@ -5,12 +5,17 @@ Team::Team()
 {
 }
 
-Team::Team(int teamIndex, const std::string& name, const Rect2f& playRegion) :
+Team::Team(int teamIndex, const std::string& name, const Rect2f& playRegion, const GameConfig& config) :
 	m_teamIndex(teamIndex),
 	m_name(name),
 	m_playRegion(playRegion),
 	m_score(0)
 {
+	m_ballServePosition.x = playRegion.GetCenter().x;
+	m_ballServePosition.y = playRegion.GetBottom() - config.ball.serveHeight;
+
+	m_playerSpawnPosition.x = playRegion.GetCenter().x;
+	m_playerSpawnPosition.y = playRegion.GetBottom();
 }
 
 

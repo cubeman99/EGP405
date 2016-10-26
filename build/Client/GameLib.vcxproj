@@ -17,12 +17,16 @@
     <ClInclude Include="..\..\src\3rdParty\lodepng\lodepng.h" />
     <ClInclude Include="..\..\src\GameLib\Application.h" />
     <ClInclude Include="..\..\src\GameLib\graphics\Color.h" />
+    <ClInclude Include="..\..\src\GameLib\graphics\Font.h" />
     <ClInclude Include="..\..\src\GameLib\graphics\Graphics.h" />
+    <ClInclude Include="..\..\src\GameLib\graphics\ImageFormat.h" />
     <ClInclude Include="..\..\src\GameLib\graphics\OpenGLIncludes.h" />
     <ClInclude Include="..\..\src\GameLib\graphics\Renderer.h" />
     <ClInclude Include="..\..\src\GameLib\graphics\RenderParams.h" />
     <ClInclude Include="..\..\src\GameLib\graphics\Shader.h" />
     <ClInclude Include="..\..\src\GameLib\graphics\SpriteFont.h" />
+    <ClInclude Include="..\..\src\GameLib\graphics\Texture.h" />
+    <ClInclude Include="..\..\src\GameLib\graphics\TextureParams.h" />
     <ClInclude Include="..\..\src\GameLib\graphics\Window.h" />
     <ClInclude Include="..\..\src\GameLib\input\Keyboard.h" />
     <ClInclude Include="..\..\src\GameLib\input\Mouse.h" />
@@ -35,6 +39,7 @@
     <ClInclude Include="..\..\src\GameLib\math\Vector3f.h" />
     <ClInclude Include="..\..\src\GameLib\math\Vector4f.h" />
     <ClInclude Include="..\..\src\GameLib\util\Random.h" />
+    <ClInclude Include="..\..\src\GameLib\util\ShelfBinPacker.h" />
     <ClInclude Include="..\..\src\GameLib\util\Timing.h" />
   </ItemGroup>
   <ItemGroup>
@@ -43,11 +48,15 @@
     <ClCompile Include="..\..\src\3rdParty\lodepng\lodepng.cpp" />
     <ClCompile Include="..\..\src\GameLib\Application.cpp" />
     <ClCompile Include="..\..\src\GameLib\graphics\Color.cpp" />
+    <ClCompile Include="..\..\src\GameLib\graphics\Font.cpp" />
     <ClCompile Include="..\..\src\GameLib\graphics\Graphics.cpp" />
+    <ClCompile Include="..\..\src\GameLib\graphics\ImageFormat.cpp" />
     <ClCompile Include="..\..\src\GameLib\graphics\Renderer.cpp" />
     <ClCompile Include="..\..\src\GameLib\graphics\RenderParams.cpp" />
     <ClCompile Include="..\..\src\GameLib\graphics\Shader.cpp" />
     <ClCompile Include="..\..\src\GameLib\graphics\SpriteFont.cpp" />
+    <ClCompile Include="..\..\src\GameLib\graphics\Texture.cpp" />
+    <ClCompile Include="..\..\src\GameLib\graphics\TextureParams.cpp" />
     <ClCompile Include="..\..\src\GameLib\graphics\Window.cpp" />
     <ClCompile Include="..\..\src\GameLib\input\Keyboard.cpp" />
     <ClCompile Include="..\..\src\GameLib\input\Mouse.cpp" />
@@ -60,6 +69,7 @@
     <ClCompile Include="..\..\src\GameLib\math\Vector3f.cpp" />
     <ClCompile Include="..\..\src\GameLib\math\Vector4f.cpp" />
     <ClCompile Include="..\..\src\GameLib\util\Random.cpp" />
+    <ClCompile Include="..\..\src\GameLib\util\ShelfBinPacker.cpp" />
     <ClCompile Include="..\..\src\GameLib\util\Timing.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -75,7 +85,7 @@
     <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -95,12 +105,16 @@
     <OutDir>$(SolutionDir)$(ProjectName)\$(Configuration)\</OutDir>
     <IntDir>$(ProjectName)\$(Configuration)\</IntDir>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)$(ProjectName)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectName)\$(Configuration)\</IntDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\SDL2\include;..\..\raknet\include;..\Common;..\..\src\GameLib;..\..\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\FreeType\include;..\..\raknet\include;..\..\SDL2\include;..\..\src\GameLib;..\..\src</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GLEW_STATIC;</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -116,6 +130,8 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\..\FreeType\include;..\..\raknet\include;..\..\SDL2\include;..\..\src\GameLib;..\..\src</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>GLEW_STATIC;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

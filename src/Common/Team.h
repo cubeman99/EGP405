@@ -3,6 +3,7 @@
 
 #include <math/Vector2f.h>
 #include <math/Rect2f.h>
+#include "Config.h"
 #include <string>
 
 
@@ -10,7 +11,7 @@ class Team
 {
 public:
 	Team();
-	Team(int teamIndex, const std::string& name, const Rect2f& playRegion);
+	Team(int teamIndex, const std::string& name, const Rect2f& playRegion, const GameConfig& config);
 
 	void SetTeamIndex(int teamIndex);
 	void SetScore(int score);
@@ -22,11 +23,16 @@ public:
 	const std::string& GetName() const;
 	const Rect2f& GetPlayRegion() const;
 
+	inline const Vector2f& GetBallServePosition() const { return m_ballServePosition; }
+	inline const Vector2f& GetPlayerSpawnPosition() const { return m_playerSpawnPosition; }
+
 private:
 	int			m_teamIndex;
 	std::string	m_name;
 	int			m_score;
 	Rect2f		m_playRegion;
+	Vector2f	m_ballServePosition;
+	Vector2f	m_playerSpawnPosition;
 };
 
 

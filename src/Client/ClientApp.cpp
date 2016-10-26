@@ -2,20 +2,44 @@
 #include <GameLib/graphics/Graphics.h>
 #include <Common/Config.h>
 #include <math/MathLib.h>
+#include <sstream>
 
 using namespace RakNet;
 
 ClientApp::ClientApp(RakNet::RakPeerInterface* peerInterface) :
-	m_peerInterface(peerInterface)
+	m_peerInterface(peerInterface),
+	m_fontSmall(NULL),
+	m_fontScore(NULL),
+	m_player(NULL)
 {
-	m_player = new Slime(
-		m_config.SLIME_COLORS[0],
-		m_config.SLIME_RADIUS,
-		Vector2f(m_config.VIEW_WIDTH * 0.25f, m_config.FLOOR_Y));
+	m_colorScheme.ballColor							= Color::YELLOW;
+	m_colorScheme.groundColor						= Color::GRAY;
+	m_colorScheme.netColor							= Color::WHITE;
+	m_colorScheme.skyColor							= Color::BLUE;
+	m_colorScheme.slime.eyeColor					= Color::WHITE;
+	m_colorScheme.slime.pupilColor					= Color::BLACK;
+	m_colorScheme.ui.chooseColorButton.outlineColor	= Color::BLACK;
+	m_colorScheme.ui.joinTeamButton.backgroundColor	= Color::WHITE;
+	m_colorScheme.ui.joinTeamButton.textColor		= Color::BLUE;
+	m_colorScheme.ui.gameInfoTextColor				= Color::YELLOW;
+	m_colorScheme.ui.menuPromptTextColor			= Color::YELLOW;
+	m_colorScheme.ui.scoreTextColor					= Color::YELLOW;
+	m_colorScheme.slime.bodyColors.push_back(Color::RED);
+	m_colorScheme.slime.bodyColors.push_back(Color(255, 128, 0));
+	m_colorScheme.slime.bodyColors.push_back(Color::YELLOW);
+	m_colorScheme.slime.bodyColors.push_back(Color::GREEN);
+	m_colorScheme.slime.bodyColors.push_back(Color::CYAN);
+	m_colorScheme.slime.bodyColors.push_back(Color(10, 10, 255));
+	m_colorScheme.slime.bodyColors.push_back(Color::MAGENTA);
+	m_colorScheme.slime.bodyColors.push_back(Color(210, 220, 220));
+	m_colorScheme.slime.bodyColors.push_back(Color::BLACK);
 }
 
 ClientApp::~ClientApp()
 {
+	delete m_fontScore;
+	delete m_fontSmall;
+
 	// Delete all players.
 	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
 	{
@@ -28,32 +52,34 @@ ClientApp::~ClientApp()
 
 void ClientApp::ReadConnectionAcceptedPacket(RakNet::Packet* packet)
 {
-	int playerId;
+	int playerId, score1, score2;
 
 	m_serverGuid = packet->guid;
 
 	BitStream bsIn(packet->data, packet->length, false);
 	bsIn.IgnoreBytes(sizeof(MessageID));
 	bsIn.Read(playerId);
-	m_player->SetPlayerId(playerId);
+	bsIn.Read(m_gameConfig);
+	bsIn.Read(score1);
+	bsIn.Read(score2);
+
+	m_player = new Slime(playerId, 0, 0, m_gameConfig.slime.radius);
+	m_players[playerId] = m_player;
+
+	m_teams[0].SetScore(score1);
+	m_teams[1].SetScore(score2);
 
 	while (true)
 	{
-		Color color;
-		RakString name;
+		int colorIndex;
 		int teamIndex;
 		bsIn.Read(playerId);
 		if (playerId < 0)
 			break;
-		bsIn.Read(name);
 		bsIn.Read(teamIndex);
-		bsIn.Read(color);
+		bsIn.Read(colorIndex);
 
-		Slime* slime = new Slime;
-		slime->SetRadius(m_config.SLIME_RADIUS);
-		slime->SetName(name.C_String());
-		slime->SetTeamIndex(teamIndex);
-		slime->SetColor(color);
+		Slime* slime = new Slime(playerId, teamIndex, colorIndex, m_gameConfig.slime.radius);
 		m_players[playerId] = slime;
 	}
 
@@ -64,57 +90,63 @@ void ClientApp::ReadConnectionAcceptedPacket(RakNet::Packet* packet)
 
 void ClientApp::OnInitialize()
 {
-	m_ball = Ball(m_config.BALL_COLOR, m_config.BALL_RADIUS,
-		Vector2f(m_config.VIEW_WIDTH * 0.25f,
-			m_config.FLOOR_Y - m_config.BALL_SERVE_HEIGHT));
+	// Load resources.
+	//m_fontScore = Font::LoadFont("../../assets/AlteHaasGroteskBold.ttf", 24, 32, 128);
+	//m_fontSmall = Font::LoadFont("../../assets/AlteHaasGroteskRegular.ttf", 12, 32, 128);
+	m_fontScore = Font::LoadFont("assets/AlteHaasGroteskBold.ttf", 24, 32, 128);
+	m_fontSmall = Font::LoadFont("assets/AlteHaasGroteskRegular.ttf", 12, 32, 128);
 
+	// Create the two teams.
 	m_teams[0] = Team(0, "1", Rect2f(0.0f, 0.0f,
-		(m_config.VIEW_WIDTH - m_config.NET_WIDTH) * 0.5f, m_config.FLOOR_Y));
-	m_teams[1] = Team(1, "2", Rect2f((m_config.VIEW_WIDTH + m_config.NET_WIDTH) * 0.5f,
-		0.0f, (m_config.VIEW_WIDTH - m_config.NET_WIDTH) * 0.5f, m_config.FLOOR_Y));
+		(m_gameConfig.view.width - m_gameConfig.net.width) * 0.5f, m_gameConfig.view.floorY), m_gameConfig);
+	m_teams[1] = Team(1, "2", Rect2f((m_gameConfig.view.width + m_gameConfig.net.width) * 0.5f,
+		0.0f, (m_gameConfig.view.width - m_gameConfig.net.width) * 0.5f, m_gameConfig.view.floorY), m_gameConfig);
 
-	m_state = STATE_CHOOSE_COLOR;
+	m_ball = Ball(m_gameConfig.ball.radius, Vector2f(m_gameConfig.view.width * 0.25f,
+			m_gameConfig.view.floorY - m_gameConfig.ball.serveHeight));
 
 	m_selectedColorButtonIndex = -1;
-	m_chooseColorButtonRadius = m_config.VIEW_HEIGHT * 0.05f;
-	
+	m_chooseColorButtonRadius = m_gameConfig.view.height * 0.05f;
+
 	for (int i = 0; i < 2; i++)
 	{
-		Rect2f button(m_config.VIEW_WIDTH * (0.25f + (i * 0.5f)), m_config.VIEW_HEIGHT * 0.5f, 0.0f, 0.0f);
+		Rect2f button(
+			m_gameConfig.view.width * (0.25f + (i * 0.5f)),
+			m_gameConfig.view.height * 0.5f, 0.0f, 0.0f);
 		button.Inflate(
-			m_config.VIEW_WIDTH * 0.5f * 0.5f * 0.6f,
-			m_config.VIEW_HEIGHT * 0.05f);
+			m_gameConfig.view.width * 0.5f * 0.5f * 0.6f,
+			m_gameConfig.view.height * 0.05f);
 		m_joinTeamButtons.push_back(button);
 	}
-		
+
 	for (int i = 0; i < 9; i++)
 	{
-		float x = ((i % 3) - 1) * m_config.VIEW_HEIGHT * 0.2f;
-		float y = ((i / 3) - 1) * m_config.VIEW_HEIGHT * 0.2f;
+		float x = ((i % 3) - 1) * m_gameConfig.view.height * 0.2f;
+		float y = ((i / 3) - 1) * m_gameConfig.view.height * 0.2f;
 
 		m_chooseColorButtons.push_back(Vector2f(
-			(m_config.VIEW_WIDTH * 0.5f) + x,
-			(m_config.VIEW_HEIGHT * 0.5f) + y));
+			(m_gameConfig.view.width * 0.5f) + x,
+			(m_gameConfig.view.height * 0.5f) + y));
 	}
+
+	m_state = STATE_CHOOSE_COLOR;
 }
 
 void ClientApp::OnUpdate(float timeDelta)
 {
-	// Ball interpolation.
+	// Ball prediction.
 	if (m_state == STATE_PLAY_GAME)
 	{
 		m_ball.SetPosition(m_ball.GetPosition() + m_ball.GetVelocity());
-		m_ball.SetVelocity(m_ball.GetVelocity() + Vector2f(0.0f, m_config.BALL_GRAVITY));
+		m_ball.SetVelocity(m_ball.GetVelocity() + Vector2f(0.0f, m_gameConfig.ball.gravity));
 	}
 
 	ReceivePackets();
 
+	// Escape: Quit the game.
 	if (GetKeyboard()->IsKeyPressed(Keys::ESCAPE))
 	{
-		BitStream bsOut;
-		bsOut.Write((MessageID) GameMessages::DISCONNECTED);
-		m_peerInterface->Send(&bsOut, HIGH_PRIORITY,
-			RELIABLE_ORDERED, 0, m_serverGuid, false);
+		m_peerInterface->CloseConnection(m_serverGuid, true, 0, IMMEDIATE_PRIORITY);
 		Quit();
 		return;
 	}
@@ -126,12 +158,12 @@ void ClientApp::OnUpdate(float timeDelta)
 		m_selectedColorButtonIndex = -1;
 
 		// Check for hovering over color option buttons.
-		for (int i = 0; i < m_config.NUM_SLIME_COLORS; i++)
+		for (int i = 0; i < (int) m_colorScheme.slime.bodyColors.size(); i++)
 		{
 			if (mousePos.DistTo(m_chooseColorButtons[i]) < m_chooseColorButtonRadius * 1.2f)
 			{
 				m_selectedColorButtonIndex = i;
-				m_player->SetColor(m_config.SLIME_COLORS[i]);
+				m_player->SetColorIndex(i);
 			}
 		}
 
@@ -142,7 +174,7 @@ void ClientApp::OnUpdate(float timeDelta)
 			m_state = STATE_CHOOSE_TEAM;
 		}
 
-		m_player->SetPosition(Vector2f(m_config.VIEW_WIDTH * 0.5f, m_config.VIEW_HEIGHT * 0.9f));
+		m_player->SetPosition(Vector2f(m_gameConfig.view.width * 0.5f, m_gameConfig.view.height * 0.9f));
 	}
 	else if (m_state == STATE_CHOOSE_TEAM)
 	{
@@ -165,21 +197,20 @@ void ClientApp::OnUpdate(float timeDelta)
 			m_state = STATE_PLAY_GAME;
 			m_player->SetTeamIndex(m_selectedColorButtonIndex);
 			m_player->SetPosition(Vector2f(
-				m_config.VIEW_WIDTH * (0.25f + (0.5f * m_player->GetTeamIndex())),
-				m_config.FLOOR_Y));
+				m_gameConfig.view.width * (0.25f + (0.5f * m_player->GetTeamIndex())),
+				m_gameConfig.view.floorY));
 
 			BitStream bsOut;
 			bsOut.Write((MessageID) GameMessages::JOIN_GAME);
-			bsOut.Write(m_player->GetName().c_str());
 			bsOut.Write(m_player->GetTeamIndex());
-			bsOut.Write(m_player->GetColor());
+			bsOut.Write(m_player->GetColorIndex());
 			m_peerInterface->Send(&bsOut, HIGH_PRIORITY,
 				RELIABLE_ORDERED, 0, m_serverGuid, false);
 			printf("Joining team %d\n", m_player->GetTeamIndex());
 		}
 		else
 		{
-			m_player->SetPosition(Vector2f(m_config.VIEW_WIDTH * 0.5f, m_config.VIEW_HEIGHT * 0.9f));
+			m_player->SetPosition(Vector2f(m_gameConfig.view.width * 0.5f, m_gameConfig.view.height * 0.9f));
 		}
 	}
 	else if (m_state == STATE_PLAY_GAME)
@@ -188,8 +219,7 @@ void ClientApp::OnUpdate(float timeDelta)
 
 		BitStream bsOut;
 		bsOut.Write((MessageID) GameMessages::CLIENT_UPDATE_TICK);
-		bsOut.Write(m_player->GetPosition());
-		bsOut.Write(m_player->GetVelocity());
+		m_player->SerializeDynamics(bsOut, m_gameConfig);
 		m_peerInterface->Send(&bsOut, HIGH_PRIORITY, UNRELIABLE,
 			0, m_serverGuid, false);
 	}
@@ -208,20 +238,20 @@ void ClientApp::UpdatePlayer()
 	float maxX = team->GetPlayRegion().GetRight();
 
 	// Integrate gravitational force.
-	vel.y += m_config.SLIME_GRAVITY;
+	vel.y += m_gameConfig.slime.gravity;
 
 	// Update controls.
 	if (GetKeyboard()->IsKeyDown(Keys::LEFT))
 		pos.x -= 4.5f;
 	if (GetKeyboard()->IsKeyDown(Keys::RIGHT))
 		pos.x += 4.5f;
-	if (GetKeyboard()->IsKeyDown(Keys::UP) && pos.y >= m_config.FLOOR_Y)
-		vel.y = -m_config.SLIME_JUMP_SPEED;
+	if (GetKeyboard()->IsKeyDown(Keys::UP) && pos.y >= m_gameConfig.view.floorY)
+		vel.y = -m_gameConfig.slime.jumpSpeed;
 
 	// Collide with floor and walls.
-	if (pos.y >= m_config.FLOOR_Y)
+	if (pos.y >= m_gameConfig.view.floorY)
 	{
-		pos.y = m_config.FLOOR_Y;
+		pos.y = m_gameConfig.view.floorY;
 		if (vel.y > 0.0f)
 			vel.y = 0.0f;
 	}
@@ -267,17 +297,15 @@ void ClientApp::ReceivePackets()
 		case GameMessages::PLAYER_JOINED:
 		{
 			int playerId;
-			RakString name;
-			Color color;
+			int colorIndex;
 			int teamIndex;
 
 			// Read the packet.
 			BitStream bsIn(packet->data, packet->length, false);
 			bsIn.IgnoreBytes(sizeof(MessageID));
 			bsIn.Read(playerId);
-			bsIn.Read(name);
 			bsIn.Read(teamIndex);
-			bsIn.Read(color);
+			bsIn.Read(colorIndex);
 
 			if (playerId != m_player->GetPlayerId())
 			{
@@ -291,19 +319,17 @@ void ClientApp::ReceivePackets()
 					player = new Slime();
 					m_players[playerId] = player;
 				}
-				player->SetRadius(m_config.SLIME_RADIUS);
-				player->SetName(name.C_String());
+				player->SetRadius(m_gameConfig.slime.radius);
 				player->SetTeamIndex(teamIndex);
-				player->SetColor(color);
+				player->SetColorIndex(colorIndex);
 				player->SetJoinedGame(true);
-				printf("%s (ID %d) joined team %d!\n", name.C_String(), playerId, teamIndex);
+				printf("Player ID %d joined team %d!\n",  playerId, teamIndex);
 			}
 			break;
 		}
 		case GameMessages::PLAYER_LEFT:
 		{
 			int playerId;
-			RakString name;
 			Color color;
 			int teamIndex;
 
@@ -311,14 +337,13 @@ void ClientApp::ReceivePackets()
 			BitStream bsIn(packet->data, packet->length, false);
 			bsIn.IgnoreBytes(sizeof(MessageID));
 			bsIn.Read(playerId);
-			bsIn.Read(name);
 			bsIn.Read(teamIndex);
 			bsIn.Read(color);
 
-			if (playerId != m_player->GetPlayerId())
+			if (playerId != m_player->GetPlayerId() && m_players.find(playerId) != m_players.end())
 			{
 				Slime* player = m_players[playerId];
-				printf("%s (ID %d) left the game.\n", player->GetName().c_str(), playerId);
+				printf("Player ID %d left the game.\n", playerId);
 				delete player;
 				m_players.erase(playerId);
 			}
@@ -331,8 +356,7 @@ void ClientApp::ReceivePackets()
 			bsIn.IgnoreBytes(sizeof(MessageID));
 			bsIn.Read(scoringTeamIndex);
 			m_teams[scoringTeamIndex].SetScore(m_teams[scoringTeamIndex].GetScore() + 1);
-			printf("Team %d scored! [Team 0: %d | Team 1: %d]\n",
-				scoringTeamIndex, m_teams[0].GetScore(), m_teams[1].GetScore());
+			printf("Team %d scored!\n", scoringTeamIndex);
 			m_state = STATE_WAIT_FOR_SERVE;
 			break;
 		}
@@ -340,9 +364,8 @@ void ClientApp::ReceivePackets()
 		{
 			if (m_state != STATE_CHOOSE_COLOR && m_state != STATE_CHOOSE_TEAM)
 			{
-				m_player->SetPosition(Vector2f(
-					m_config.VIEW_WIDTH * (0.25f + (0.5f * m_player->GetTeamIndex())),
-					m_config.FLOOR_Y));
+				m_player->SetPosition(m_teams[m_player->GetTeamIndex()]
+					.GetPlayerSpawnPosition());
 				m_player->SetVelocity(Vector2f::ZERO);
 				m_state = STATE_PLAY_GAME;
 			}
@@ -355,28 +378,31 @@ void ClientApp::ReceivePackets()
 			
 			BitStream bsIn(packet->data, packet->length, false);
 			bsIn.IgnoreBytes(sizeof(MessageID));
+
+			// Read ball information.
 			bsIn.Read(ballPos);
 			bsIn.Read(ballVel);
 			m_ball.SetPosition(ballPos);
 			m_ball.SetVelocity(ballVel);
 
+			// Read player information.
+			Slime dummy;
+			int playerId;
+
 			while (true)
 			{
-				int playerId;
-				Color color;
-				RakString name;
 				bsIn.Read(playerId);
 				if (playerId < 0)
 					break;
-				bsIn.Read(ballPos);
-				bsIn.Read(ballVel);
-				if (playerId != m_player->GetPlayerId())
+
+				if (playerId != m_player->GetPlayerId() && m_players.find(playerId) != m_players.end())
 				{
-					if (m_players.find(playerId) != m_players.end())
-					{
-						m_players[playerId]->SetPosition(ballPos);
-						m_players[playerId]->SetVelocity(ballVel);
-					}
+					m_players[playerId]->DeserializeDynamics(bsIn, m_gameConfig);
+				}
+				else
+				{
+					// We still need to deserialize the data.
+					dummy.DeserializeDynamics(bsIn, m_gameConfig);
 				}
 			}
 			break;
@@ -388,10 +414,10 @@ void ClientApp::ReceivePackets()
 void ClientApp::DrawSlime(Graphics& g, const Slime& slime, const Vector2f& lookAtPoint)
 {
 	Polygonf slimePoly;
-	int numEdges = 10;
+	int numEdges = 16;
 	for (int i = 0; i <= numEdges; i++)
 	{
-		float angle = (i / (float)numEdges) * Math::PI;
+		float angle = (i / (float) numEdges) * Math::PI;
 		slimePoly.AddVertex(Vector2f(Math::Cos(angle), -Math::Sin(angle)));
 	}
 
@@ -407,50 +433,50 @@ void ClientApp::DrawSlime(Graphics& g, const Slime& slime, const Vector2f& lookA
 	// Draw the body.
 	g.Translate(slime.GetPosition());
 	g.Scale(slime.GetRadius());
-	g.FillPolygon(slimePoly, slime.GetColor());
+	g.FillPolygon(slimePoly, m_colorScheme.slime.bodyColors[slime.GetColorIndex()]);
 
 	// Draw the eye white.
 	g.Translate(eyeOffset);
 	g.Scale(eyeRadius);
-	g.FillCircle(Vector2f::ZERO, 1.0f, Color::WHITE);
+	g.FillCircle(Vector2f::ZERO, 1.0f, m_colorScheme.slime.eyeColor);
 
 	// Draw the pupil.
 	g.Translate(pupilOffset);
 	g.Scale(pupilRadius);
-	g.FillCircle(Vector2f::ZERO, 1.0f, Color::BLACK);
+	g.FillCircle(Vector2f::ZERO, 1.0f, m_colorScheme.slime.pupilColor);
 
 	g.ResetTransform();
 }
 
 void ClientApp::OnRender()
 {
-	Rect2f groundRect(0, m_config.FLOOR_Y, m_config.VIEW_WIDTH,
-		m_config.VIEW_HEIGHT - m_config.FLOOR_Y);
-	Rect2f netRect((m_config.VIEW_WIDTH - m_config.NET_WIDTH) / 2,
-		m_config.FLOOR_Y - m_config.NET_HEIGHT + m_config.NET_DEPTH,
-		m_config.NET_WIDTH, m_config.NET_HEIGHT);
+	Rect2f groundRect(0, m_gameConfig.view.floorY, m_gameConfig.view.width,
+		m_gameConfig.view.height - m_gameConfig.view.floorY);
+	Rect2f netRect((m_gameConfig.view.width - m_gameConfig.net.width) / 2,
+		m_gameConfig.view.floorY  - m_gameConfig.net.height + m_gameConfig.net.depthBelowGround,
+		m_gameConfig.net.width, m_gameConfig.net.height);
 
-	Vector2f mousePos((float)GetMouse()->GetX(), (float)GetMouse()->GetY());
+	Vector2f mousePos((float) GetMouse()->GetX(), (float) GetMouse()->GetY());
 
 	// Set up a graphics drawer.
 	Graphics g(GetWindow());
 	g.SetViewport(Viewport(0, 0, GetWindow()->GetWidth(),
 		GetWindow()->GetHeight()), false, true);
 	g.SetProjection(Matrix4f::CreateOrthographic(0.0f,
-		m_config.VIEW_WIDTH, m_config.VIEW_HEIGHT, 0.0f, 1.0f, -1.0f));
+		m_gameConfig.view.width, m_gameConfig.view.height, 0.0f, 1.0f, -1.0f));
 	g.ResetTransform();
 
 	// Clear the sky color.
-	g.Clear(m_config.SKY_COLOR);
+	g.Clear(m_colorScheme.skyColor);
 
 	// Draw the ground.
-	g.FillRect(groundRect, m_config.GROUND_COLOR);
+	g.FillRect(groundRect, m_colorScheme.groundColor);
 
 	// Draw the net.
-	g.FillRect(netRect, m_config.NET_COLOR);
+	g.FillRect(netRect, m_colorScheme.netColor);
 
 	// Draw the ball.
-	g.FillCircle(m_ball.GetPosition(), m_ball.GetRadius(), m_ball.GetColor());
+	g.FillCircle(m_ball.GetPosition(), m_ball.GetRadius(), m_colorScheme.ballColor);
 
 	// Draw the slimes.
 	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
@@ -465,26 +491,64 @@ void ClientApp::OnRender()
 	// Draw state-specific stuff.
 	if (m_state == STATE_CHOOSE_COLOR)
 	{
+		// Draw the prompt.
+		g.DrawString(m_fontScore, "Choose a color!",
+			m_gameConfig.view.width * 0.5f, m_gameConfig.view.height * 0.1f,
+			m_colorScheme.ui.menuPromptTextColor, Align::TOP_CENTER);
+
 		// Draw color options.
-		for (int i = 0; i < m_config.NUM_SLIME_COLORS; i++)
+		for (int i = 0; i < (int) m_colorScheme.slime.bodyColors.size(); i++)
 		{
 			float r = m_chooseColorButtonRadius;
 			if (m_selectedColorButtonIndex == i)
 				r *= 1.2f;
-			g.FillCircle(m_chooseColorButtons[i], r, m_config.SLIME_COLORS[i]);
-			g.DrawCircle(m_chooseColorButtons[i], r, Color::BLACK);
+			g.FillCircle(m_chooseColorButtons[i], r, m_colorScheme.slime.bodyColors[i]);
+			g.DrawCircle(m_chooseColorButtons[i], r, m_colorScheme.ui.chooseColorButton.outlineColor);
 		}
 	}
 	else if (m_state == STATE_CHOOSE_TEAM)
 	{
+		// Draw the prompt.
+		g.DrawString(m_fontScore, "Choose a team!",
+			m_gameConfig.view.width * 0.5f, m_gameConfig.view.height * 0.1f,
+			m_colorScheme.ui.menuPromptTextColor, Align::TOP_CENTER);
+
 		// Draw team buttons.
 		for (int i = 0; i < 2; i++)
 		{
-			g.FillRect(m_joinTeamButtons[i], Color::WHITE);
+			g.FillRect(m_joinTeamButtons[i], m_colorScheme.ui.joinTeamButton.backgroundColor);
+			g.DrawString(m_fontSmall, "Click here to join this team!",
+				m_joinTeamButtons[i].GetCenter().x,
+				m_joinTeamButtons[i].GetCenter().y,
+				m_colorScheme.ui.joinTeamButton.textColor, Align::CENTERED);
 		}
 	}
 	else if (m_state == STATE_PLAY_GAME || m_state == STATE_WAIT_FOR_SERVE)
 	{
-		// Draw score.
+		// Draw the score.
+		std::stringstream strStream;
+		strStream << m_teams[0].GetScore() << " - " << m_teams[1].GetScore();
+		g.DrawString(m_fontScore, strStream.str(),
+			m_gameConfig.view.width * 0.5f, m_gameConfig.view.height * 0.1f,
+			m_colorScheme.ui.scoreTextColor, Align::TOP_CENTER);
+
+		// Count the number of players per team.
+		int playerCounts[2] = { 0, 0 };
+		for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
+		{
+			playerCounts[it->second->GetTeamIndex()]++;
+		}
+		
+		// Display if we're waiting for players.
+		for (int i = 0; i < 2; i++)
+		{
+			if (playerCounts[i] == 0)
+			{
+				g.DrawString(m_fontSmall, "Waiting for players...",
+					m_joinTeamButtons[i].GetCenter().x,
+					m_joinTeamButtons[i].GetCenter().y,
+					m_colorScheme.ui.gameInfoTextColor, Align::CENTERED);
+			}
+		}
 	}
 }

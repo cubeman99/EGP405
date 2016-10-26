@@ -9,11 +9,10 @@ class Ball
 {
 public:
 	Ball();
-	Ball(const Color& color, float radius, const Vector2f& position);
+	Ball(float radius, const Vector2f& position);
 
 	void SetPosition(const Vector2f& position);
 	void SetVelocity(const Vector2f& velocity);
-	void SetColor(const Color& color);
 	void SetRadius(float radius);
 	
 	const Vector2f& GetPosition() const;
@@ -26,7 +25,6 @@ public:
 private:
 	Vector2f m_position;
 	Vector2f m_velocity;
-	Color m_color;
 	float m_radius;
 };
 

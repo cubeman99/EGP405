@@ -9,6 +9,7 @@
 #include <RakNet/RakNetTypes.h>  // MessageID
 #include <RakNet/RakPeerInterface.h>
 #include <RakNet/MessageIdentifiers.h>
+#include <math/Polygonf.h>
 #include <map>
 #include "Ball.h"
 #include "Slime.h"
@@ -30,19 +31,28 @@ public:
 	Server();
 	~Server();
 
+	int Initialize();
 	int Run();
 	void Tick(float timeDelta);
 
 private:
-	void ReceivePackets();
+	void BeginWaitingForPlayers();
+	void BeginNewRound();
 	void UpdateBall();
+	void OnTeamScore(int teamIndex);
+
+	void ReceivePackets();
+	void OnPlayerConnect(RakNet::Packet* connectionPacket);
+	void OnPlayerDisconnect(RakNet::Packet* disconnectionPacket);
+	void OnPlayerJoinGame(RakNet::Packet* joinPacket);
+
 	bool AreBothTeamsReady();
+	int GetNewPlayerId();
 
 	typedef std::map<int, Slime*> PlayerMap;
 	typedef std::map<RakNet::RakNetGUID, int> GuidToPlayerMap;
 
 	RakNet::RakPeerInterface* m_peerInterface;
-	RakNet::SocketDescriptor m_socketDescriptor;
 
 	enum
 	{
@@ -51,8 +61,9 @@ private:
 		STATE_PLAY_GAME,
 	};
 
+	GameConfig m_gameConfig;
+
 	int m_state;
-	Config m_config;
 	Ball m_ball;
 	PlayerMap m_players;
 	GuidToPlayerMap m_guidToPlayerMap;

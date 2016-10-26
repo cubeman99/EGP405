@@ -101,9 +101,7 @@ int main()
 	// Run the client application.
 	if (connectionResult == 2)
 	{
-		app.Initialize("Slime Volleyball",
-			(int)app.GetConfig().VIEW_WIDTH,
-			(int) app.GetConfig().VIEW_HEIGHT);
+		app.Initialize("Slime Volleyball", 750, 500);
 		app.Run();
 	}
 	else

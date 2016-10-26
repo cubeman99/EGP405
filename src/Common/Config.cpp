@@ -1,49 +1,9 @@
 #include "Config.h"
 
-
-Config::Config()
+GameConfig::GameConfig()
 {
-	SKY_COLOR = Color::BLUE;
-	GROUND_COLOR = Color::GRAY;
-	NET_COLOR = Color::WHITE;
-
-	// BALL:
-	BALL_RADIUS = 11;
-	BALL_GRAVITY = 0.22f;
-	BALL_MAX_SPEED = 10;
-	BALL_SERVE_HEIGHT = 130;
-	BALL_COLOR = Color::YELLOW;
-
-	// SLIME:
-	SLIME_RADIUS = 37;
-	SLIME_GRAVITY = 0.5f;
-	SLIME_JUMP_SPEED = 9;
-
-	VIEW_WIDTH = 750;
-	VIEW_HEIGHT = 500;
-	FLOOR_Y = 350;
-	NET_WIDTH = 4;
-	NET_HEIGHT = 41;
-	NET_DEPTH = 4;
-
-	SCORE_PAUSE_TIME = 1000;
-	MAX_SCORE = 6;
-	MAX_PLAYERS = 10;
-
-
-	SCORE_OFFSET = Vector2f(15, 15);
-	SCORE_RECT = Vector2f(280, 35);
-	POINT_RADIUS_SPACING_RATIO = 0.3714285714f;
-	MAX_POINT_RADIUS = 13;
-
-	SLIME_COLORS[0] = Color::RED;
-	SLIME_COLORS[1] = Color(255, 128, 0);
-	SLIME_COLORS[2] = Color::YELLOW;
-	SLIME_COLORS[3] = Color::GREEN;
-	SLIME_COLORS[4] = Color::CYAN;
-	SLIME_COLORS[5] = Color::BLUE;
-	SLIME_COLORS[6] = Color::MAGENTA;
-	SLIME_COLORS[7] = Color::WHITE;
-	SLIME_COLORS[8] = Color::BLACK;
 }
 
+ColorScheme::ColorScheme()
+{
+}

@@ -2,11 +2,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <string>
-#include <string.h>
-#include <RakNet/BitStream.h>
-#include <RakNet/RakNetTypes.h>  // MessageID
 #include <RakNet/RakPeerInterface.h>
-#include <RakNet/MessageIdentifiers.h>
 #include "Server.h"
 
 
@@ -16,13 +12,18 @@
 
 int main(int argc, char** argv)
 {
+	int returnCondition;
+
 	Server server;
-	int rc = server.Run();
+
+	returnCondition = server.Initialize();
+	if (returnCondition == 0)
+		returnCondition = server.Run();
 	
 	RakNet::RakPeerInterface::DestroyInstance(RakNet::RakPeerInterface::GetInstance());
 
-	if (rc != 0)
+	if (returnCondition != 0)
 		system("pause");
-	return 0;
+	return returnCondition;
 }
 

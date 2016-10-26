@@ -24,6 +24,17 @@ Polygonf::Polygonf(const Rect2f& rect)
 // Accessors.
 //-----------------------------------------------------------------------------
 
+Vector2f Polygonf::GetNormal(int index) const
+{
+	int n = (int) m_vertices.size();
+	Vector2f normal = m_vertices[index] - m_vertices[(index + n - 1) % n];
+	float temp = normal.x;
+	normal.x = -normal.y;
+	normal.y = temp;
+	normal.Normalize();
+	return normal;
+}
+
 
 //-----------------------------------------------------------------------------
 // Mutators.

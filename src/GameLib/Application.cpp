@@ -92,7 +92,9 @@ void Application::HandleSDLEvent(SDL_Event* e)
 {
 	// Close button was pressed.
 	if (e->type == SDL_QUIT)
+	{
 		m_isRunning = false;
+	}
 		
 	// Window Events.
 	else if (e->type == SDL_WINDOWEVENT)

@@ -1,14 +1,15 @@
 #include "Window.h"
+#include <graphics/Font.h>
 #include <Windows.h>
 #include <3rdParty/glew/GLEW.H>
 #include <gl/GL.h>
 #include <stdio.h>
 
 
-Window::Window()
-	: m_sdlWindow(NULL)
-	, m_width(0)
-	, m_height(0)
+Window::Window() :
+	m_sdlWindow(NULL),
+	m_width(0),
+	m_height(0)
 {
 }
 
@@ -16,6 +17,7 @@ Window::~Window()
 {
 	if (m_sdlWindow != NULL)
 	{
+		Font::QuitFreeTypeLibrary();
 		SDL_GL_DeleteContext(m_glContext);
 		SDL_DestroyWindow(m_sdlWindow);
 	}
@@ -62,6 +64,8 @@ bool Window::Initialize(const char* title, int width, int height)
 		fprintf(stderr, "Glew init error: '%s'\n", glewGetErrorString(res));
 		return false;
 	}
+
+	Font::InitFreeTypeLibrary();
 
 	m_width  = width;
 	m_height = height;

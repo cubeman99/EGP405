@@ -16,7 +16,6 @@ struct GameMessages
 		PLAYER_JOINED,
 		PLAYER_LEFT,
 		TEAM_SCORED,
-		//ROUND_ENDED,
 		TEAM_SERVE,
 		UPDATE_TICK,
 

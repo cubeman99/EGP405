@@ -3,49 +3,84 @@
 
 #include <graphics/Color.h>
 #include <math/Vector2f.h>
+#include <vector>
 
 
-struct Config
+struct GameConfig
 {
-	Config();
+	GameConfig();
 
+	struct
+	{
+		float radius;
+		float gravity;
+		float maxSpeed;
+		float serveHeight;
+	} ball;
 
-	Color SKY_COLOR;
-	Color GROUND_COLOR;
-	Color NET_COLOR;
+	struct
+	{
+		float radius;
+		float gravity;
+		float jumpSpeed;
+		float moveSpeed;
+	} slime;
 
-	// BALL:
-	float BALL_RADIUS;
-	float BALL_GRAVITY;
-	float BALL_MAX_SPEED;
-	float BALL_SERVE_HEIGHT;
-	Color BALL_COLOR;
+	struct
+	{
+		float width;
+		float height;
+		float depthBelowGround;
+	} net;
 
-	// SLIME:
-	float SLIME_RADIUS;
-	float SLIME_GRAVITY;
-	float SLIME_JUMP_SPEED;
+	struct
+	{
+		float width;
+		float height;
+		float floorY;
+	} view;
 
-	float VIEW_WIDTH;
-	float VIEW_HEIGHT;
-	float FLOOR_Y;
-	float NET_WIDTH;
-	float NET_HEIGHT;
-	float NET_DEPTH;
-
-	int SCORE_PAUSE_TIME;
-	int MAX_SCORE;
-	int MAX_PLAYERS;
-
-
-	Vector2f SCORE_OFFSET;
-	Vector2f SCORE_RECT;
-	float POINT_RADIUS_SPACING_RATIO;
-	float MAX_POINT_RADIUS;
-
-	static const int NUM_SLIME_COLORS = 9;
-	Color SLIME_COLORS[NUM_SLIME_COLORS];
-
+	float scorePauseSeconds;
+	int maxPlayers;
 };
+
+
+struct ColorScheme
+{
+	ColorScheme();
+
+	Color skyColor;
+	Color groundColor;
+	Color netColor;
+	Color ballColor;
+
+	struct
+	{
+		Color eyeColor;
+		Color pupilColor;
+		std::vector<Color> bodyColors;
+
+	} slime;
+
+	struct
+	{
+		Color scoreTextColor;
+		Color gameInfoTextColor;
+		Color menuPromptTextColor;
+
+		struct 
+		{
+			Color textColor;
+			Color backgroundColor;
+		} joinTeamButton;
+
+		struct
+		{
+			Color outlineColor;
+		} chooseColorButton;
+
+	} ui;
+};
+
 
 #endif // _CONFIG_H_

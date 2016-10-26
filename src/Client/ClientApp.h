@@ -25,8 +25,6 @@ public:
 
 	void ReadConnectionAcceptedPacket(RakNet::Packet* packet);
 
-	inline const Config& GetConfig() const { return m_config; }
-
 protected:
 	void OnInitialize();
 	void OnUpdate(float timeDelta);
@@ -48,13 +46,19 @@ private:
 
 	typedef std::map<int, Slime*> PlayerMap;
 
+	Texture* m_testTexture;
+	Font* m_fontScore;
+	Font* m_fontSmall;
+
+	ColorScheme m_colorScheme;
+	GameConfig m_gameConfig;
+
 	RakNet::RakPeerInterface* m_peerInterface;
 	float m_chooseColorButtonRadius;
 	int m_selectedColorButtonIndex;
 	std::vector<Vector2f> m_chooseColorButtons;
 	std::vector<Rect2f> m_joinTeamButtons;
 	int m_state;
-	Config m_config;
 	Ball m_ball;
 	Team m_teams[2];
 	Slime* m_player;

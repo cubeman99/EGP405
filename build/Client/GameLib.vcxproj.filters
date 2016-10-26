@@ -111,6 +111,21 @@
     <ClInclude Include="..\..\src\GameLib\math\Polygonf.h">
       <Filter>math</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\GameLib\graphics\Texture.h">
+      <Filter>graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\GameLib\graphics\TextureParams.h">
+      <Filter>graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\GameLib\graphics\ImageFormat.h">
+      <Filter>graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\GameLib\graphics\Font.h">
+      <Filter>graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\GameLib\util\ShelfBinPacker.h">
+      <Filter>util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\GameLib\math\MathLib.cpp">
@@ -181,6 +196,21 @@
     </ClCompile>
     <ClCompile Include="..\..\src\GameLib\math\Polygonf.cpp">
       <Filter>math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\GameLib\graphics\Texture.cpp">
+      <Filter>graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\GameLib\graphics\TextureParams.cpp">
+      <Filter>graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\GameLib\graphics\ImageFormat.cpp">
+      <Filter>graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\GameLib\graphics\Font.cpp">
+      <Filter>graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\GameLib\util\ShelfBinPacker.cpp">
+      <Filter>util</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

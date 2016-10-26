@@ -17,6 +17,8 @@ public:
 	// Accessors.
 	inline size_t size() const { return m_vertices.size(); }
 	inline int GetVertexCount() const { return (int) m_vertices.size(); }
+	inline Vector2f GetVertex(unsigned int index) const { return m_vertices[index]; }
+	Vector2f GetNormal(int index) const;
 
 	// Mutators.
 	inline void AddVertex(const Vector2f& vertex) { m_vertices.push_back(vertex); }

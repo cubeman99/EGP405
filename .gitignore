@@ -22,3 +22,4 @@ build/[Dd]ebug
 build/[Rr]elease
 
 Release/
+distribution/
