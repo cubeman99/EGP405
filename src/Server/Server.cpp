@@ -228,7 +228,7 @@ void Server::OnPlayerConnect(RakNet::Packet* connectionPacket)
 			bsOut.Write(slime->GetColorIndex());
 		}
 	}
-	bsOut.Write((int)-1);
+	bsOut.Write((int) -1);
 	m_peerInterface->Send(&bsOut, HIGH_PRIORITY,
 		RELIABLE_ORDERED, 0, connectionPacket->systemAddress, false);
 

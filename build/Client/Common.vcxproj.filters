@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\input">
+      <UniqueIdentifier>{14043ae8-129b-443d-8828-0db4c300936c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\Common\Config.cpp">
@@ -26,6 +29,12 @@
     </ClCompile>
     <ClCompile Include="..\..\src\Common\Team.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\InputManager.cpp">
+      <Filter>Source Files\input</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\InputState.cpp">
+      <Filter>Source Files\input</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -43,6 +52,12 @@
     </ClInclude>
     <ClInclude Include="..\..\src\Common\Team.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Common\InputManager.h">
+      <Filter>Source Files\input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Common\InputState.h">
+      <Filter>Source Files\input</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -13,12 +13,16 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\Common\Ball.cpp" />
     <ClCompile Include="..\..\src\Common\Config.cpp" />
+    <ClCompile Include="..\..\src\Common\InputManager.cpp" />
+    <ClCompile Include="..\..\src\Common\InputState.cpp" />
     <ClCompile Include="..\..\src\Common\Sime.cpp" />
     <ClCompile Include="..\..\src\Common\Team.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\Common\Ball.h" />
     <ClInclude Include="..\..\src\Common\Config.h" />
+    <ClInclude Include="..\..\src\Common\InputManager.h" />
+    <ClInclude Include="..\..\src\Common\InputState.h" />
     <ClInclude Include="..\..\src\Common\Messages.h" />
     <ClInclude Include="..\..\src\Common\Slime.h" />
     <ClInclude Include="..\..\src\Common\Team.h" />
