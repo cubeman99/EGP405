@@ -8,6 +8,13 @@ InputState::InputState() :
 {
 }
 
+void InputState::Reset()
+{
+	m_desiredRightAmount = 0;
+	m_desiredLeftAmount = 0;
+	m_isJumping = false;
+}
+
 void InputState::Write(RakNet::BitStream& outStream) const
 {
 	outStream.Write(m_desiredRightAmount);

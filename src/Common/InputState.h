@@ -10,6 +10,8 @@ class InputState
 public:
 	InputState();
 
+	void Reset();
+
 	inline float GetDesiredHorizontalDelta() const { return m_desiredRightAmount - m_desiredLeftAmount; }
 	inline bool IsJumping() const { return m_isJumping; }
 

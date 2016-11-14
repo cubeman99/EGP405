@@ -18,10 +18,10 @@
     <ClCompile Include="..\..\src\Client\ClientApp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Client\board.cpp">
+    <ClCompile Include="..\..\src\Client\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Client\main.cpp">
+    <ClCompile Include="..\..\src\Client\NetworkManagerClient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -29,7 +29,7 @@
     <ClInclude Include="..\..\src\Client\ClientApp.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Client\board.h">
+    <ClInclude Include="..\..\src\Client\NetworkManagerClient.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

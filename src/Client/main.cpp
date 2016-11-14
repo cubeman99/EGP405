@@ -17,8 +17,6 @@
 #include <RakNet/RakPeerInterface.h>
 #include <RakNet/MessageIdentifiers.h>
 
-#include "board.h"
-
 #include <SDL2/SDL.h>
 #undef main
 
@@ -88,7 +86,7 @@ int main()
 				connectionResult = 1;
 				break;
 			}
-			case GameMessages::ACCEPT_CONNECTION:
+			case PacketType::ACCEPT_CONNECTION:
 			{
 				app.ReadConnectionAcceptedPacket(packet);
 				connectionResult = 2;

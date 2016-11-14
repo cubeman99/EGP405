@@ -4,8 +4,7 @@
 #include <RakNet/MessageIdentifiers.h>
 
 
-
-struct GameMessages
+struct PacketType
 {
 	enum
 	{
@@ -21,10 +20,14 @@ struct GameMessages
 
 		// Client --> Server
 		DISCONNECTED,
-		JOIN_GAME,
 		CLIENT_UPDATE_TICK,
+		
+		EVENTS_BEGIN,
+			JOIN_TEAM,
+		EVENTS_END,
+
+		INPUT,
 	};
 };
-
 
 #endif // _MESSAGES_H_

@@ -12,8 +12,6 @@ using namespace RakNet;
 
 Server::Server()
 {
-	m_peerInterface = RakPeerInterface::GetInstance();
-
 	m_gameConfig.maxPlayers				= 20;
 	m_gameConfig.scorePauseSeconds		= 1.0f;
 	m_gameConfig.view.floorY			= 350;
@@ -29,6 +27,7 @@ Server::Server()
 	m_gameConfig.slime.radius			= 37;
 	m_gameConfig.slime.gravity			= 0.5f;
 	m_gameConfig.slime.jumpSpeed		= 9;
+	m_gameConfig.slime.moveSpeed		= 4.5f;
 }
 
 Server::~Server()
@@ -42,16 +41,11 @@ Server::~Server()
 
 int Server::Initialize()
 {
-	// Setup the server socket.
 	printf("Starting the server on port %d.\n", SERVER_PORT);
-	SocketDescriptor sd(SERVER_PORT, 0);
-	StartupResult result = m_peerInterface->Startup(m_gameConfig.maxPlayers, &sd, 1);
-	m_peerInterface->SetMaximumIncomingConnections(m_gameConfig.maxPlayers); // Max number of players.
-	m_peerInterface->SetOccasionalPing(true);
-
-	if (result != StartupResult::RAKNET_STARTED)
+	
+	if (!m_networkManager.Initialize(SERVER_PORT, m_gameConfig.maxPlayers, this))
 	{
-		printf("Error: failure to start the RakNet peer interface.\n");
+		printf("Error: failure to start the server.\n");
 		return -1;
 	}
 
@@ -61,8 +55,6 @@ int Server::Initialize()
 		(m_gameConfig.view.width - m_gameConfig.net.width) * 0.5f, m_gameConfig.view.floorY), m_gameConfig);
 	m_teams[1] = Team(1, "2", Rect2f((m_gameConfig.view.width + m_gameConfig.net.width) * 0.5f,
 		0.0f, (m_gameConfig.view.width - m_gameConfig.net.width) * 0.5f, m_gameConfig.view.floorY), m_gameConfig);
-
-
 	m_ball = Ball(m_gameConfig.ball.radius, Vector2f(m_gameConfig.view.width * 0.25f,
 			m_gameConfig.view.floorY - m_gameConfig.ball.serveHeight));
 
@@ -100,7 +92,6 @@ int Server::Run()
 		// Tick at a constant rate.
 		if (newTime >= nextTickTime + frameTime)
 		{
-			ReceivePackets();
 			Tick(m_frameTime);
 			frames++;
 
@@ -115,9 +106,39 @@ int Server::Run()
 
 void Server::Tick(float timeDelta)
 {
+	// Process any queued packets.
+	m_networkManager.ReceivePackets();
+
+	// Process input and simulate movement for each player.
+	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
+	{
+		Slime* player = it->second;
+		ClientProxy* client = m_networkManager.GetClientProxy(player->GetPlayerId());
+
+		MoveList& moveList = client->GetUnprocessedMoveList();
+
+		for (int i = 0; i < moveList.GetMoveCount(); i++)
+		{
+			Move& unprocessedMove = moveList[i];
+			const InputState& currentState = unprocessedMove.GetInputState();
+			float deltaTime = unprocessedMove.GetDeltaTime();
+
+			//float xVelocity = currentState.GetDesiredHorizontalDelta() *
+				//deltaTime * m_gameConfig.slime.moveSpeed;
+			//float xVelocity = currentState.GetDesiredHorizontalDelta() * 4.5f;
+			//player->SetPosition(player->GetPosition() + Vector2f(xVelocity, 0.0f));
+
+			ProcessPlayerInput(player, currentState, deltaTime);
+			SimulatePlayerMovement(player, deltaTime);
+		}
+
+		moveList.Clear();
+	}
+
 	// Update game states.
 	if (m_state == STATE_PLAY_GAME)
 	{
+		// Simulate ball physics.
 		UpdateBall();
 	}
 	else if (m_state == STATE_WAIT_FOR_SERVE)
@@ -138,7 +159,7 @@ void Server::Tick(float timeDelta)
 	
 	// Broadcast a message to clients containing ball and player state info.
 	BitStream bsOut;
-	bsOut.Write((MessageID) GameMessages::UPDATE_TICK);
+	bsOut.Write((MessageID) PacketType::UPDATE_TICK);
 	bsOut.Write(m_ball.GetPosition());
 	bsOut.Write(m_ball.GetVelocity());
 	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
@@ -152,8 +173,59 @@ void Server::Tick(float timeDelta)
 		}
 	}
 	bsOut.Write((int) -1);
-	m_peerInterface->Send(&bsOut, HIGH_PRIORITY, UNRELIABLE,
-		0, RakNet::UNASSIGNED_RAKNET_GUID, true);
+	m_networkManager.Broadcast(&bsOut, HIGH_PRIORITY, UNRELIABLE);
+}
+
+void Server::ProcessPlayerInput(Slime* player, const InputState& currentState, float deltaTime)
+{
+	Vector2f velocity = player->GetVelocity();
+	Vector2f position = player->GetPosition();
+
+	velocity.x = currentState.GetDesiredHorizontalDelta() * m_gameConfig.slime.moveSpeed;
+
+	if (currentState.IsJumping() && position.y >= m_gameConfig.view.floorY)
+		velocity.y = -m_gameConfig.slime.jumpSpeed;
+	
+	player->SetVelocity(velocity);
+}
+
+void Server::SimulatePlayerMovement(Slime* player, float deltaTime)
+{
+	Vector2f position = player->GetPosition();
+	Vector2f velocity = player->GetVelocity();
+	Team* team = &m_teams[player->GetTeamIndex()];
+	float minX = team->GetPlayRegion().GetLeft();
+	float maxX = team->GetPlayRegion().GetRight();
+	float radius = player->GetRadius();
+
+	// Integrate gravitational force.
+	velocity.y += (m_gameConfig.slime.gravity * 60.0f) * deltaTime;
+	
+	// Collide with floor and walls.
+	if (position.y >= m_gameConfig.view.floorY)
+	{
+		position.y = m_gameConfig.view.floorY;
+		if (velocity.y > 0.0f)
+			velocity.y = 0.0f;
+	}
+	if (position.x - radius <= minX)
+	{
+		position.x = minX + radius;
+		if (velocity.x < 0.0f)
+		velocity.x = 0.0f;
+	}
+	else if (position.x + radius >= maxX)
+	{
+		position.x = maxX - radius;
+		if (velocity.x > 0.0f)
+			velocity.x = 0.0f;
+	}
+
+	// Integrate velocity.
+	position += (velocity * 60.0f) * deltaTime;
+
+	player->SetPosition(position);
+	player->SetVelocity(velocity);
 }
 
 void Server::BeginNewRound()
@@ -162,12 +234,15 @@ void Server::BeginNewRound()
 	m_ball.SetPosition(m_teams[m_servingTeamIndex].GetBallServePosition());
 	m_ball.SetVelocity(Vector2f::ZERO);
 
+	// Position the players in the middle of their areas.
+	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
+		it->second->SetPosition(m_teams[it->second->GetTeamIndex()].GetPlayerSpawnPosition());
+
 	// Tell the clients that the round has begun, letting them 
 	// move around again.
 	BitStream bsOut;
-	bsOut.Write((MessageID)GameMessages::TEAM_SERVE);
-	m_peerInterface->Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED,
-		0, RakNet::UNASSIGNED_RAKNET_GUID, true);
+	bsOut.Write((MessageID) PacketType::TEAM_SERVE);
+	m_networkManager.Broadcast(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED);
 
 	if (AreBothTeamsReady())
 	{
@@ -201,20 +276,21 @@ void Server::OnTeamScore(int teamIndex)
 	// Tell the clients that a team has scored, freezing 
 	// their movement for a duration.
 	BitStream bsOut;
-	bsOut.Write((MessageID)GameMessages::TEAM_SCORED);
+	bsOut.Write((MessageID)PacketType::TEAM_SCORED);
 	bsOut.Write(m_servingTeamIndex);
-	m_peerInterface->Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED,
-		0, RakNet::UNASSIGNED_RAKNET_GUID, true);
+	m_networkManager.Broadcast(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED);
 }
 
-void Server::OnPlayerConnect(RakNet::Packet* connectionPacket)
+void Server::OnClientConnect(ClientProxy* client)
 {
+	printf("Player ID %d has connected.\n", client->GetPlayerId());
+
 	// Reply with an ACCEPT_CONNECTION packet, containing the connected player's
-	// assigned player ID as well as the current game state: score and a list
-	// of joined players.
+	// assigned player ID as well as a snapshot of the current game state: score
+	// and a list of joined players.
 	BitStream bsOut;
-	bsOut.Write((MessageID) GameMessages::ACCEPT_CONNECTION);
-	bsOut.Write(m_playerIdCounter);
+	bsOut.Write((MessageID) PacketType::ACCEPT_CONNECTION);
+	bsOut.Write(client->GetPlayerId());
 	bsOut.Write(m_gameConfig);
 	bsOut.Write(m_teams[0].GetScore());
 	bsOut.Write(m_teams[1].GetScore());
@@ -229,67 +305,77 @@ void Server::OnPlayerConnect(RakNet::Packet* connectionPacket)
 		}
 	}
 	bsOut.Write((int) -1);
-	m_peerInterface->Send(&bsOut, HIGH_PRIORITY,
-		RELIABLE_ORDERED, 0, connectionPacket->systemAddress, false);
-
-	// Create a new player entity.
-	int playerId = GetNewPlayerId();
-	m_guidToPlayerMap[connectionPacket->guid] = playerId;
-	m_players[playerId] = new Slime(playerId, 0, 0, m_gameConfig.slime.radius);
-	m_players[playerId]->SetPlayerId(playerId);
-
-	printf("Player ID %d has connected.\n", playerId);
+	m_networkManager.Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED, client);
 }
 
-void Server::OnPlayerDisconnect(RakNet::Packet* disconnectionPacket)
+void Server::OnClientDisconnect(ClientProxy* client)
 {
+	printf("Player ID %d has diconnected.\n", client->GetPlayerId());
+
 	// Find the player from the packet's RakNet GUID.
-	int playerId = m_guidToPlayerMap[disconnectionPacket->guid];
-	Slime* player = m_players[playerId];
+	Slime* player = m_players[client->GetPlayerId()];
 
-	// Remove the player.
+	// Remove the player from memory.
 	delete player;
-	m_players.erase(playerId);
-	m_guidToPlayerMap.erase(disconnectionPacket->guid);
+	m_players.erase(client->GetPlayerId());
 
-	// Tell the clients a player has disconnected.
+	// Tell the other clients a player has disconnected.
 	BitStream bsOut;
-	bsOut.Write((MessageID) GameMessages::PLAYER_LEFT);
-	bsOut.Write(playerId);
-	m_peerInterface->Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED,
-		0, disconnectionPacket->systemAddress, true);
-
-	printf("Player ID %d has diconnected.\n", playerId);
+	bsOut.Write((MessageID) PacketType::PLAYER_LEFT);
+	bsOut.Write(client->GetPlayerId());
+	m_networkManager.Broadcast(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED, client);
 }
 
-void Server::OnPlayerJoinGame(RakNet::Packet* joinPacket)
+void Server::OnClientEvent(ClientProxy* client, NetworkEventID eventId, RakNet::BitStream& inStream)
+{
+	switch (eventId)
+	{
+	case PacketType::JOIN_TEAM:
+	{
+		OnPlayerJoinTeam(client, inStream);
+		break;
+	}
+	//case PacketType::CLIENT_UPDATE_TICK:
+	//{
+	//	// Read the packet.
+	//	BitStream bsIn(packet->data, packet->length, false);
+	//	bsIn.IgnoreBytes(sizeof(MessageID));
+	//	int playerId = m_guidToPlayerMap[packet->guid];
+	//	Slime* player = m_players[playerId];
+	//	player->DeserializeDynamics(bsIn, m_gameConfig);
+	//	break;
+	//}
+	}
+}
+
+void Server::OnPlayerJoinTeam(ClientProxy* client, RakNet::BitStream& inStream)
 {
 	int colorIndex;
 	int teamIndex;
+	
+	// Create a new player entity.
+	Slime* player = new Slime(client->GetPlayerId(), 0, 0, m_gameConfig.slime.radius);
+	m_players[client->GetPlayerId()] = player;
 
 	// Read the packet.
-	BitStream bsIn(joinPacket->data, joinPacket->length, false);
-	bsIn.IgnoreBytes(sizeof(MessageID));
-	bsIn.Read(teamIndex);
-	bsIn.Read(colorIndex);
+	inStream.Read(teamIndex);
+	inStream.Read(colorIndex);
 
 	// Update the player info.
-	int playerId = m_guidToPlayerMap[joinPacket->guid];
-	Slime* player = m_players[playerId];
 	player->SetTeamIndex(teamIndex);
 	player->SetColorIndex(colorIndex);
 	player->SetJoinedGame(true);
+	player->SetPosition(m_teams[teamIndex].GetPlayerSpawnPosition());
 
-	// Tell the clients that a player has joined.
+	// Tell the other clients that a player has joined.
 	BitStream bsOut;
-	bsOut.Write((MessageID) GameMessages::PLAYER_JOINED);
-	bsOut.Write(playerId);
+	bsOut.Write((MessageID) PacketType::PLAYER_JOINED);
+	bsOut.Write(client->GetPlayerId());
 	bsOut.Write(teamIndex);
 	bsOut.Write(colorIndex);
-	m_peerInterface->Send(&bsOut, HIGH_PRIORITY,
-		RELIABLE_ORDERED, 0, joinPacket->systemAddress, true);
+	m_networkManager.Broadcast(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED, client);
 	
-	printf("Player ID %d has joined team %d!\n", playerId, teamIndex);
+	printf("Player ID %d has joined team %d!\n", client->GetPlayerId(), teamIndex);
 
 	// Check if there is at least one ready player per team.
 	// If so, then start the match.
@@ -298,57 +384,9 @@ void Server::OnPlayerJoinGame(RakNet::Packet* joinPacket)
 		m_state = STATE_WAIT_FOR_SERVE;
 		m_serveDelayTimer = m_gameConfig.scorePauseSeconds;
 		m_servingTeamIndex = 0;
+		for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
+			it->second->SetPosition(m_teams[it->second->GetTeamIndex()].GetPlayerSpawnPosition());
 		printf("There are enough players to start a match!\n");
-	}
-}
-
-int Server::GetNewPlayerId()
-{
-	m_playerIdCounter++;
-	return (m_playerIdCounter - 1);
-}
-
-void Server::ReceivePackets()
-{
-	Packet *packet;
-
-	for (packet = m_peerInterface->Receive(); packet != NULL;
-		m_peerInterface->DeallocatePacket(packet),
-		packet = m_peerInterface->Receive())
-	{
-		switch (packet->data[0])
-		{
-		case ID_REMOTE_NEW_INCOMING_CONNECTION: // A player has connected.
-		case ID_NEW_INCOMING_CONNECTION:
-		{
-			OnPlayerConnect(packet);
-			break;
-		}
-		case ID_REMOTE_DISCONNECTION_NOTIFICATION:
-		case ID_REMOTE_CONNECTION_LOST:
-		case ID_DISCONNECTION_NOTIFICATION:
-		case ID_CONNECTION_LOST:
-		case GameMessages::DISCONNECTED:
-		{
-			OnPlayerDisconnect(packet);
-			break;
-		}
-		case GameMessages::JOIN_GAME:
-		{
-			OnPlayerJoinGame(packet);
-			break;
-		}
-		case GameMessages::CLIENT_UPDATE_TICK:
-		{
-			// Read the packet.
-			BitStream bsIn(packet->data, packet->length, false);
-			bsIn.IgnoreBytes(sizeof(MessageID));
-			int playerId = m_guidToPlayerMap[packet->guid];
-			Slime* player = m_players[playerId];
-			player->DeserializeDynamics(bsIn, m_gameConfig);
-			break;
-		}
-		}
 	}
 }
 
@@ -421,7 +459,7 @@ void Server::UpdateBall()
 				position = v1 + (radius * n);
 				if (velocity.Dot(n) < 0.0f)
 					velocity = velocity - (2.0f * velocity.Dot(n) * n);
-				printf("Ball collide with top of net\n");
+				printf("Ball collided with top of net\n");
 			}
 		}
 		// Closest to v2.
@@ -434,7 +472,6 @@ void Server::UpdateBall()
 				position = v2 + (radius * n);
 				if (velocity.Dot(n) < 0.0f)
 					velocity = velocity - (2.0f * velocity.Dot(n) * n);
-				printf("Collide bot\n");
 			}
 		}
 		else if (Math::Abs(position.x - v1.x) < radius)
@@ -444,14 +481,12 @@ void Server::UpdateBall()
 				position.x = v1.x - radius;
 				if (velocity.x > 0.0f)
 					velocity.x = -velocity.x;
-				printf("Collide left\n");
 			}
 			else
 			{
 				position.x = v1.x + radius;
 				if (velocity.x < 0.0f)
 					velocity.x = -velocity.x;
-				printf("Collide right\n");
 			}
 		}
 	}

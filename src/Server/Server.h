@@ -16,6 +16,8 @@
 #include "Team.h"
 #include "Messages.h"
 #include "Config.h"
+#include "MoveList.h"
+#include "NetworkManagerServer.h"
 
 
 struct PlayerInfo
@@ -25,7 +27,7 @@ struct PlayerInfo
 };
 
 
-class Server
+class Server : public NetworkEventHandler
 {
 public:
 	Server();
@@ -35,24 +37,23 @@ public:
 	int Run();
 	void Tick(float timeDelta);
 
+	void OnClientConnect(ClientProxy* client) override;
+	void OnClientDisconnect(ClientProxy* client) override;
+	void OnClientEvent(ClientProxy* client, NetworkEventID eventId, RakNet::BitStream& inStream) override;
+
+	void OnPlayerJoinTeam(ClientProxy* client, RakNet::BitStream& inStream);
+
 private:
+
+	void UpdateBall();
+	void ProcessPlayerInput(Slime* player, const InputState& currentState, float deltaTime);
+	void SimulatePlayerMovement(Slime* player, float deltaTime);
+
 	void BeginWaitingForPlayers();
 	void BeginNewRound();
-	void UpdateBall();
 	void OnTeamScore(int teamIndex);
 
-	void ReceivePackets();
-	void OnPlayerConnect(RakNet::Packet* connectionPacket);
-	void OnPlayerDisconnect(RakNet::Packet* disconnectionPacket);
-	void OnPlayerJoinGame(RakNet::Packet* joinPacket);
-
 	bool AreBothTeamsReady();
-	int GetNewPlayerId();
-
-	typedef std::map<int, Slime*> PlayerMap;
-	typedef std::map<RakNet::RakNetGUID, int> GuidToPlayerMap;
-
-	RakNet::RakPeerInterface* m_peerInterface;
 
 	enum
 	{
@@ -61,16 +62,21 @@ private:
 		STATE_PLAY_GAME,
 	};
 
+	typedef std::map<int, Slime*> PlayerMap;
+
+	// Game config
 	GameConfig m_gameConfig;
 
+	// Game state
+	float m_serveDelayTimer;
+	int m_servingTeamIndex;
 	int m_state;
 	Ball m_ball;
 	PlayerMap m_players;
-	GuidToPlayerMap m_guidToPlayerMap;
-	int m_playerIdCounter;
-	float m_serveDelayTimer;
-	int m_servingTeamIndex;
 	Team m_teams[2];
+
+	// Managers
+	NetworkManagerServer m_networkManager;
 };
 
 

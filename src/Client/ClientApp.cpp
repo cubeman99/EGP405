@@ -81,6 +81,8 @@ void ClientApp::ReadConnectionAcceptedPacket(RakNet::Packet* packet)
 
 	m_serverGuid = packet->guid;
 
+	m_networkManager.Initialize(m_peerInterface, &m_inputManager, packet->systemAddress);
+
 	BitStream bsIn(packet->data, packet->length, false);
 	bsIn.IgnoreBytes(sizeof(MessageID));
 	bsIn.Read(playerId);
@@ -115,6 +117,8 @@ void ClientApp::ReadConnectionAcceptedPacket(RakNet::Packet* packet)
 
 void ClientApp::OnInitialize()
 {
+	m_inputManager.Initialize(GetKeyboard());
+
 	// Load resources.
 	//m_fontScore = Font::LoadFont("../../assets/AlteHaasGroteskBold.ttf", 24, 32, 128);
 	//m_fontSmall = Font::LoadFont("../../assets/AlteHaasGroteskRegular.ttf", 12, 32, 128);
@@ -159,13 +163,6 @@ void ClientApp::OnInitialize()
 
 void ClientApp::OnUpdate(float timeDelta)
 {
-	// Ball prediction.
-	if (m_state == STATE_PLAY_GAME)
-	{
-		m_ball.SetPosition(m_ball.GetPosition() + m_ball.GetVelocity());
-		m_ball.SetVelocity(m_ball.GetVelocity() + Vector2f(0.0f, m_gameConfig.ball.gravity));
-	}
-
 	ReceivePackets();
 
 	// Escape: Quit the game.
@@ -226,7 +223,7 @@ void ClientApp::OnUpdate(float timeDelta)
 				m_gameConfig.view.floorY));
 
 			BitStream bsOut;
-			bsOut.Write((MessageID) GameMessages::JOIN_GAME);
+			bsOut.Write((MessageID) PacketType::JOIN_TEAM);
 			bsOut.Write(m_player->GetTeamIndex());
 			bsOut.Write(m_player->GetColorIndex());
 			m_peerInterface->Send(&bsOut, HIGH_PRIORITY,
@@ -240,13 +237,19 @@ void ClientApp::OnUpdate(float timeDelta)
 	}
 	else if (m_state == STATE_PLAY_GAME)
 	{
-		UpdatePlayer();
+		//UpdatePlayer();
 
-		BitStream bsOut;
-		bsOut.Write((MessageID) GameMessages::CLIENT_UPDATE_TICK);
+		/*BitStream bsOut;
+		bsOut.Write((MessageID) PacketType::CLIENT_UPDATE_TICK);
 		m_player->SerializeDynamics(bsOut, m_gameConfig);
 		m_peerInterface->Send(&bsOut, HIGH_PRIORITY, UNRELIABLE,
-			0, m_serverGuid, false);
+			0, m_serverGuid, false);*/
+
+		m_inputManager.Update(timeDelta);
+		if (m_inputManager.GetMoveList().GetMoveCount() >= 1)
+		{
+			m_networkManager.SendInputPacket();
+		}
 	}
 	else if (m_state == STATE_WAIT_FOR_SERVE)
 	{
@@ -319,7 +322,7 @@ void ClientApp::ReceivePackets()
 			printf("Connection lost.\n");
 			break;
 		}
-		case GameMessages::PLAYER_JOINED:
+		case PacketType::PLAYER_JOINED:
 		{
 			int playerId;
 			int colorIndex;
@@ -352,7 +355,7 @@ void ClientApp::ReceivePackets()
 			}
 			break;
 		}
-		case GameMessages::PLAYER_LEFT:
+		case PacketType::PLAYER_LEFT:
 		{
 			int playerId;
 			Color color;
@@ -374,7 +377,7 @@ void ClientApp::ReceivePackets()
 			}
 			break;
 		}
-		case GameMessages::TEAM_SCORED:
+		case PacketType::TEAM_SCORED:
 		{
 			int scoringTeamIndex;
 			BitStream bsIn(packet->data, packet->length, false);
@@ -385,7 +388,7 @@ void ClientApp::ReceivePackets()
 			m_state = STATE_WAIT_FOR_SERVE;
 			break;
 		}
-		case GameMessages::TEAM_SERVE:
+		case PacketType::TEAM_SERVE:
 		{
 			if (m_state != STATE_CHOOSE_COLOR && m_state != STATE_CHOOSE_TEAM)
 			{
@@ -396,7 +399,7 @@ void ClientApp::ReceivePackets()
 			}
 			break;
 		}
-		case GameMessages::UPDATE_TICK:
+		case PacketType::UPDATE_TICK:
 		{
 			Vector2f ballPos;
 			Vector2f ballVel;
@@ -420,7 +423,7 @@ void ClientApp::ReceivePackets()
 				if (playerId < 0)
 					break;
 
-				if (playerId != m_player->GetPlayerId() && m_players.find(playerId) != m_players.end())
+				if (/*playerId != m_player->GetPlayerId() && */m_players.find(playerId) != m_players.end())
 				{
 					m_players[playerId]->DeserializeDynamics(bsIn, m_gameConfig);
 				}

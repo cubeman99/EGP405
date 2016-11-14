@@ -87,10 +87,14 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\Server\ClientProxy.cpp" />
     <ClCompile Include="..\..\src\Server\main.cpp" />
+    <ClCompile Include="..\..\src\Server\NetworkManagerServer.cpp" />
     <ClCompile Include="..\..\src\Server\Server.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\Server\ClientProxy.h" />
+    <ClInclude Include="..\..\src\Server\NetworkManagerServer.h" />
     <ClInclude Include="..\..\src\Server\Server.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

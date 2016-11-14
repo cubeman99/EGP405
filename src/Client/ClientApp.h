@@ -2,20 +2,25 @@
 #define _CLIENT_APP_H_
 
 #include <RakNet/BitStream.h>
+#include <RakNet/MessageIdentifiers.h>
 #include <RakNet/RakNetTypes.h>  // MessageID
 #include <RakNet/RakPeerInterface.h>
-#include <RakNet/MessageIdentifiers.h>
+
+#include <map>
+#include <vector>
+
 #include <GameLib/Application.h>
 #include <GameLib/graphics/Graphics.h>
-#include <math/Vector2f.h>
-#include <math/Rect2f.h>
-#include "Config.h"
+#include <GameLib/math/Rect2f.h>
+#include <GameLib/math/Vector2f.h>
+
 #include "Ball.h"
+#include "Config.h"
+#include "Messages.h"
+#include "NetworkManagerClient.h"
 #include "Slime.h"
 #include "Team.h"
-#include "Messages.h"
-#include <vector>
-#include <map>
+
 
 class ClientApp : public Application
 {
@@ -44,26 +49,35 @@ private:
 		STATE_WAIT_FOR_SERVE,
 	};
 
-	typedef std::map<int, Slime*> PlayerMap;
+	typedef int PlayerID;
+	typedef std::map<PlayerID, Slime*> PlayerMap;
 
+	// Resources
 	Texture* m_testTexture;
 	Font* m_fontScore;
 	Font* m_fontSmall;
 
+	// Game config
 	ColorScheme m_colorScheme;
 	GameConfig m_gameConfig;
-
-	RakNet::RakPeerInterface* m_peerInterface;
 	float m_chooseColorButtonRadius;
 	int m_selectedColorButtonIndex;
 	std::vector<Vector2f> m_chooseColorButtons;
 	std::vector<Rect2f> m_joinTeamButtons;
+
+	// Game state
 	int m_state;
 	Ball m_ball;
 	Team m_teams[2];
 	Slime* m_player;
+
+	// Networking
 	PlayerMap m_players;
 	RakNet::RakNetGUID m_serverGuid;
+
+	RakNet::RakPeerInterface* m_peerInterface;
+	InputManager m_inputManager;
+	NetworkManagerClient m_networkManager;
 };
 
 

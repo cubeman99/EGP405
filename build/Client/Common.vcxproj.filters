@@ -36,6 +36,12 @@
     <ClCompile Include="..\..\src\Common\InputState.cpp">
       <Filter>Source Files\input</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\Common\Move.cpp">
+      <Filter>Source Files\input</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\MoveList.cpp">
+      <Filter>Source Files\input</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\Common\Config.h">
@@ -57,6 +63,12 @@
       <Filter>Source Files\input</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Common\InputState.h">
+      <Filter>Source Files\input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Common\Move.h">
+      <Filter>Source Files\input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Common\MoveList.h">
       <Filter>Source Files\input</Filter>
     </ClInclude>
   </ItemGroup>
