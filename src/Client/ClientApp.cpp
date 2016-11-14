@@ -12,52 +12,79 @@ ClientApp::ClientApp(RakNet::RakPeerInterface* peerInterface) :
 	m_fontScore(NULL),
 	m_player(NULL)
 {
-	m_colorScheme.ballColor							= Color::YELLOW;
-	m_colorScheme.groundColor						= Color::GRAY;
-	m_colorScheme.netColor							= Color::WHITE;
-	m_colorScheme.skyColor							= Color::BLUE;
+	// Default color scheme:
+	//m_colorScheme.ballColor							= Color::YELLOW;
+	//m_colorScheme.groundColor						= Color::GRAY;
+	//m_colorScheme.netColor							= Color::WHITE;
+	//m_colorScheme.skyColor							= Color::BLUE;
+	//m_colorScheme.slime.eyeColor					= Color::WHITE;
+	//m_colorScheme.slime.pupilColor					= Color::BLACK;
+	//m_colorScheme.ui.chooseColorButton.outlineColor	= Color::BLACK;
+	//m_colorScheme.ui.joinTeamButton.backgroundColor	= Color::WHITE;
+	//m_colorScheme.ui.joinTeamButton.textColor		= Color::BLUE;
+	//m_colorScheme.ui.gameInfoTextColor				= Color::YELLOW;
+	//m_colorScheme.ui.menuPromptTextColor			= Color::YELLOW;
+	//m_colorScheme.ui.scoreTextColor					= Color::YELLOW;
+	//m_colorScheme.slime.bodyColors.clear();
+	//m_colorScheme.slime.bodyColors.push_back(Color::RED);
+	//m_colorScheme.slime.bodyColors.push_back(Color(255, 128, 0));
+	//m_colorScheme.slime.bodyColors.push_back(Color::YELLOW);
+	//m_colorScheme.slime.bodyColors.push_back(Color::GREEN);
+	//m_colorScheme.slime.bodyColors.push_back(Color::CYAN);
+	//m_colorScheme.slime.bodyColors.push_back(Color(10, 10, 255));
+	//m_colorScheme.slime.bodyColors.push_back(Color::MAGENTA);
+	//m_colorScheme.slime.bodyColors.push_back(Color(210, 220, 220));
+	//m_colorScheme.slime.bodyColors.push_back(Color::BLACK);
+
+	// Halloween color scheme:
+	//m_colorScheme.ballColor							= Color(226, 98, 0);
+	//m_colorScheme.groundColor						= Color(52, 43, 56);
+	//m_colorScheme.netColor							= Color::WHITE;
+	//m_colorScheme.skyColor							= Color(3, 0, 11);
+	//m_colorScheme.slime.eyeColor					= Color::WHITE;
+	//m_colorScheme.slime.pupilColor					= Color::BLACK;
+	//m_colorScheme.ui.chooseColorButton.outlineColor	= Color::WHITE;
+	//m_colorScheme.ui.joinTeamButton.backgroundColor	= Color(170, 96, 201);
+	//m_colorScheme.ui.joinTeamButton.textColor		= m_colorScheme.skyColor;
+	//m_colorScheme.ui.gameInfoTextColor				= Color::GREEN;
+	//m_colorScheme.ui.menuPromptTextColor			= Color::GREEN;
+	//m_colorScheme.ui.scoreTextColor					= Color::GREEN;
+	//m_colorScheme.slime.bodyColors.clear();
+	//m_colorScheme.slime.bodyColors.push_back(Color(214, 0, 0));
+	//m_colorScheme.slime.bodyColors.push_back(Color(226, 98, 0));
+	//m_colorScheme.slime.bodyColors.push_back(Color(255, 241, 45));
+	//m_colorScheme.slime.bodyColors.push_back(Color(134, 224, 17));
+	//m_colorScheme.slime.bodyColors.push_back(Color(19, 219, 219));
+	//m_colorScheme.slime.bodyColors.push_back(Color(0, 0, 242));
+	//m_colorScheme.slime.bodyColors.push_back(Color(117, 8, 117));
+	//m_colorScheme.slime.bodyColors.push_back(Color(210, 220, 220));
+	//m_colorScheme.slime.bodyColors.push_back(Color::BLACK);
+
+	// Thanksgiving color theme:
+	m_colorScheme.ballColor							= Color(138, 160, 64);
+	m_colorScheme.groundColor						= Color(183, 130, 66);
+	m_colorScheme.netColor							= Color(242, 181, 26);
+	m_colorScheme.skyColor							= Color(204, 192, 177);
 	m_colorScheme.slime.eyeColor					= Color::WHITE;
 	m_colorScheme.slime.pupilColor					= Color::BLACK;
 	m_colorScheme.ui.chooseColorButton.outlineColor	= Color::BLACK;
-	m_colorScheme.ui.joinTeamButton.backgroundColor	= Color::WHITE;
-	m_colorScheme.ui.joinTeamButton.textColor		= Color::BLUE;
-	m_colorScheme.ui.gameInfoTextColor				= Color::YELLOW;
-	m_colorScheme.ui.menuPromptTextColor			= Color::YELLOW;
-	m_colorScheme.ui.scoreTextColor					= Color::YELLOW;
-	m_colorScheme.slime.bodyColors.clear();
-	m_colorScheme.slime.bodyColors.push_back(Color::RED);
-	m_colorScheme.slime.bodyColors.push_back(Color(255, 128, 0));
-	m_colorScheme.slime.bodyColors.push_back(Color::YELLOW);
-	m_colorScheme.slime.bodyColors.push_back(Color::GREEN);
-	m_colorScheme.slime.bodyColors.push_back(Color::CYAN);
-	m_colorScheme.slime.bodyColors.push_back(Color(10, 10, 255));
-	m_colorScheme.slime.bodyColors.push_back(Color::MAGENTA);
-	m_colorScheme.slime.bodyColors.push_back(Color(210, 220, 220));
-	m_colorScheme.slime.bodyColors.push_back(Color::BLACK);
-
-	
-	m_colorScheme.ballColor							= Color(226, 98, 0);
-	m_colorScheme.groundColor						= Color(52, 43, 56);
-	m_colorScheme.netColor							= Color::WHITE;
-	m_colorScheme.skyColor							= Color(3, 0, 11);
-	m_colorScheme.slime.eyeColor					= Color::WHITE;
-	m_colorScheme.slime.pupilColor					= Color::BLACK;
-	m_colorScheme.ui.chooseColorButton.outlineColor	= Color::WHITE;
-	m_colorScheme.ui.joinTeamButton.backgroundColor	= Color(170, 96, 201);
+	m_colorScheme.ui.joinTeamButton.backgroundColor	= Color(196, 89, 27);
 	m_colorScheme.ui.joinTeamButton.textColor		= m_colorScheme.skyColor;
-	m_colorScheme.ui.gameInfoTextColor				= Color::GREEN;
-	m_colorScheme.ui.menuPromptTextColor			= Color::GREEN;
-	m_colorScheme.ui.scoreTextColor					= Color::GREEN;
+	m_colorScheme.ui.gameInfoTextColor				= Color::BLACK;
+	m_colorScheme.ui.menuPromptTextColor			= Color::BLACK;
+	m_colorScheme.ui.scoreTextColor					= Color::BLACK;
 	m_colorScheme.slime.bodyColors.clear();
-	m_colorScheme.slime.bodyColors.push_back(Color(214, 0, 0));
-	m_colorScheme.slime.bodyColors.push_back(Color(226, 98, 0));
-	m_colorScheme.slime.bodyColors.push_back(Color(255, 241, 45));
-	m_colorScheme.slime.bodyColors.push_back(Color(134, 224, 17));
-	m_colorScheme.slime.bodyColors.push_back(Color(19, 219, 219));
-	m_colorScheme.slime.bodyColors.push_back(Color(0, 0, 242));
-	m_colorScheme.slime.bodyColors.push_back(Color(117, 8, 117));
-	m_colorScheme.slime.bodyColors.push_back(Color(210, 220, 220));
-	m_colorScheme.slime.bodyColors.push_back(Color::BLACK);
+	m_colorScheme.slime.bodyColors.push_back(Color(249, 83, 27));
+	m_colorScheme.slime.bodyColors.push_back(Color(196, 89, 27));
+	m_colorScheme.slime.bodyColors.push_back(Color(242, 181, 26));
+	m_colorScheme.slime.bodyColors.push_back(Color(138, 160, 64));
+	m_colorScheme.slime.bodyColors.push_back(Color(95, 244, 202));
+	m_colorScheme.slime.bodyColors.push_back(Color(19, 151, 221));
+	m_colorScheme.slime.bodyColors.push_back(Color(145, 43, 102));
+	m_colorScheme.slime.bodyColors.push_back(Color(206, 192, 163));
+	m_colorScheme.slime.bodyColors.push_back(Color(76, 71, 56));
+
+	// TODO: Christmas color theme:
 }
 
 ClientApp::~ClientApp()

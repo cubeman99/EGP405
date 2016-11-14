@@ -20,6 +20,7 @@
 #include "NetworkManagerClient.h"
 #include "Slime.h"
 #include "Team.h"
+#include "GameWorld.h"
 
 
 class ClientApp : public Application
@@ -49,7 +50,6 @@ private:
 		STATE_WAIT_FOR_SERVE,
 	};
 
-	typedef int PlayerID;
 	typedef std::map<PlayerID, Slime*> PlayerMap;
 
 	// Resources
@@ -70,6 +70,7 @@ private:
 	Ball m_ball;
 	Team m_teams[2];
 	Slime* m_player;
+	GameWorld m_gameWorld;
 
 	// Networking
 	PlayerMap m_players;

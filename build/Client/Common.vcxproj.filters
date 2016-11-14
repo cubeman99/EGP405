@@ -42,6 +42,9 @@
     <ClCompile Include="..\..\src\Common\MoveList.cpp">
       <Filter>Source Files\input</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\Common\GameWorld.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\Common\Config.h">
@@ -70,6 +73,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\Common\MoveList.h">
       <Filter>Source Files\input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Common\GameWorld.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

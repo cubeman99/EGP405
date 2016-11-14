@@ -20,12 +20,6 @@
 #include "NetworkManagerServer.h"
 
 
-struct PlayerInfo
-{
-	RakNet::RakNetGUID guid;
-
-};
-
 
 class Server : public NetworkEventHandler
 {
