@@ -33,9 +33,13 @@ void NetworkManagerClient::SendInputPacket()
 		for (int i = startIndex; i < moveCount; ++i)
 			moveList[i].Write(inputPacket);
 		
-		m_peerInterface->Send(&inputPacket, HIGH_PRIORITY,
-			RELIABLE_ORDERED, 0, m_serverAddress, false);
+		Send(&inputPacket, HIGH_PRIORITY, RELIABLE_ORDERED);
 
 		moveList.Clear();
 	}
+}
+
+void NetworkManagerClient::Send(const RakNet::BitStream* bitStream, PacketPriority priority, PacketReliability reliability)
+{
+	m_peerInterface->Send(bitStream, priority, reliability, 0, m_serverAddress, false);
 }

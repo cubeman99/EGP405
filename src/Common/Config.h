@@ -5,7 +5,7 @@
 #include <math/Vector2f.h>
 #include <vector>
 
-
+#pragma pack(1)
 struct GameConfig
 {
 	GameConfig();
@@ -43,7 +43,7 @@ struct GameConfig
 	float scorePauseSeconds;
 	int maxPlayers;
 };
-
+#pragma pack()
 
 struct ColorScheme
 {

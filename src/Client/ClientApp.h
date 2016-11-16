@@ -37,8 +37,13 @@ protected:
 	void OnRender();
 
 private:
-	void UpdatePlayer();
+
 	void ReceivePackets();
+	void ReceivePacketPlayerJoined(RakNet::BitStream& inStream);
+	void ReceivePacketPlayerLeft(RakNet::BitStream& inStream);
+	void ReceivePacketTeamScored(RakNet::BitStream& inStream);
+	void ReceivePacketTeamServe(RakNet::BitStream& inStream);
+	void ReceivePacketUpdateTick(RakNet::BitStream& inStream);
 
 	void DrawSlime(Graphics& g, const Slime& slime, const Vector2f& lookAtPoint);
 
@@ -59,23 +64,16 @@ private:
 
 	GameWorld m_gameWorld;
 
-	// Game config
+	// Client game config
 	ColorScheme m_colorScheme;
-	GameConfig m_gameConfig;
 	float m_chooseColorButtonRadius;
 	int m_selectedColorButtonIndex;
 	std::vector<Vector2f> m_chooseColorButtons;
 	std::vector<Rect2f> m_joinTeamButtons;
 
-	// Game state
+	// Client game state
 	int m_state;
-	Ball m_ball;
-	Team m_teams[2];
 	Slime* m_player;
-
-	// Networking
-	PlayerMap m_players;
-	RakNet::RakNetGUID m_serverGuid;
 
 	RakNet::RakPeerInterface* m_peerInterface;
 	InputManager m_inputManager;

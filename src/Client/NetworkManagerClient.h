@@ -18,6 +18,8 @@ public:
 
 	void SendInputPacket();
 
+	void Send(const RakNet::BitStream* bitStream, PacketPriority priority, PacketReliability reliability);
+
 private:
 	RakNet::RakPeerInterface* m_peerInterface;
 	RakNet::SystemAddress m_serverAddress;
