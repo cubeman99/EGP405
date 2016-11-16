@@ -12,51 +12,43 @@ using namespace RakNet;
 
 Server::Server()
 {
-	m_gameConfig.maxPlayers				= 20;
-	m_gameConfig.scorePauseSeconds		= 1.0f;
-	m_gameConfig.view.floorY			= 350;
-	m_gameConfig.view.width				= 750;
-	m_gameConfig.view.height			= 500;
-	m_gameConfig.net.width				= 4;
-	m_gameConfig.net.height				= 41;
-	m_gameConfig.net.depthBelowGround	= 4;
-	m_gameConfig.ball.radius			= 11;
-	m_gameConfig.ball.gravity			= 0.22f;
-	m_gameConfig.ball.maxSpeed			= 10;
-	m_gameConfig.ball.serveHeight		= 130;
-	m_gameConfig.slime.radius			= 37;
-	m_gameConfig.slime.gravity			= 0.5f;
-	m_gameConfig.slime.jumpSpeed		= 9;
-	m_gameConfig.slime.moveSpeed		= 4.5f;
 }
 
 Server::~Server()
 {
-	// Delete all players.
-	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
-	{
-		delete it->second;
-	}
 }
 
 int Server::Initialize()
 {
+	// Configure & initialize the game world.
+	GameConfig config;
+	config.maxPlayers			= 20;
+	config.scorePauseSeconds	= 1.0f;
+	config.view.floorY			= 350;
+	config.view.width			= 750;
+	config.view.height			= 500;
+	config.net.width			= 4;
+	config.net.height			= 41;
+	config.net.depthBelowGround	= 4;
+	config.ball.radius			= 11;
+	config.ball.gravity			= 0.22f;
+	config.ball.maxSpeed		= 10;
+	config.ball.serveHeight		= 130;
+	config.slime.radius			= 37;
+	config.slime.gravity		= 0.5f;
+	config.slime.jumpSpeed		= 9;
+	config.slime.moveSpeed		= 4.5f;
+
+	m_gameWorld.Initialize(config);
+	m_gameWorld.SetState(GameWorld::STATE_WAITING_FOR_PLAYERS);
+	m_gameWorld.PositionBallAboveNet();
+
 	printf("Starting the server on port %d.\n", SERVER_PORT);
-	
-	if (!m_networkManager.Initialize(SERVER_PORT, m_gameConfig.maxPlayers, this))
+	if (!m_networkManager.Initialize(SERVER_PORT, config.maxPlayers, this))
 	{
 		printf("Error: failure to start the server.\n");
 		return -1;
 	}
-
-	m_state = STATE_WAIT_FOR_PLAYERS;
-	m_serveDelayTimer = 0.0f;
-	m_teams[0] = Team(0, "1", Rect2f(0.0f, 0.0f,
-		(m_gameConfig.view.width - m_gameConfig.net.width) * 0.5f, m_gameConfig.view.floorY), m_gameConfig);
-	m_teams[1] = Team(1, "2", Rect2f((m_gameConfig.view.width + m_gameConfig.net.width) * 0.5f,
-		0.0f, (m_gameConfig.view.width - m_gameConfig.net.width) * 0.5f, m_gameConfig.view.floorY), m_gameConfig);
-	m_ball = Ball(m_gameConfig.ball.radius, Vector2f(m_gameConfig.view.width * 0.25f,
-			m_gameConfig.view.floorY - m_gameConfig.ball.serveHeight));
 
 	return 0;
 }
@@ -106,11 +98,13 @@ int Server::Run()
 
 void Server::Tick(float timeDelta)
 {
+	Ball& ball = m_gameWorld.GetBall();
+
 	// Process any queued packets.
 	m_networkManager.ReceivePackets();
 
 	// Process input and simulate movement for each player.
-	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
+	for (auto it = m_gameWorld.players_begin(); it != m_gameWorld.players_end(); it++)
 	{
 		Slime* player = it->second;
 		ClientProxy* client = m_networkManager.GetClientProxy(player->GetPlayerId());
@@ -121,27 +115,30 @@ void Server::Tick(float timeDelta)
 		{
 			Move& unprocessedMove = moveList[i];
 			const InputState& currentState = unprocessedMove.GetInputState();
-			float deltaTime = unprocessedMove.GetDeltaTime();
+			float moveTimeDelta = unprocessedMove.GetDeltaTime();
 
-			//float xVelocity = currentState.GetDesiredHorizontalDelta() *
-				//deltaTime * m_gameConfig.slime.moveSpeed;
-			//float xVelocity = currentState.GetDesiredHorizontalDelta() * 4.5f;
-			//player->SetPosition(player->GetPosition() + Vector2f(xVelocity, 0.0f));
-
-			ProcessPlayerInput(player, currentState, deltaTime);
-			SimulatePlayerMovement(player, deltaTime);
+			m_gameWorld.ProcessPlayerInput(player, currentState, moveTimeDelta);
+			m_gameWorld.SimulatePlayerMovement(player, moveTimeDelta);
 		}
 
 		moveList.Clear();
 	}
 
 	// Update game states.
-	if (m_state == STATE_PLAY_GAME)
+	if (m_gameWorld.GetState() == GameWorld::STATE_GAMEPLAY)
 	{
 		// Simulate ball physics.
-		UpdateBall();
+		m_gameWorld.SimulateBallMovement(timeDelta);
+
+		// Check for a score - the ball touches the ground.
+		if (ball.GetPosition().y + ball.GetRadius() >= m_gameWorld.GetConfig().view.floorY)
+		{
+			ball.SetPosition(Vector2f(ball.GetPosition().x,
+				m_gameWorld.GetConfig().view.floorY - ball.GetRadius()));
+			OnTeamScore(ball.GetPosition().x < m_gameWorld.GetConfig().view.width * 0.5f ? 1 : 0);
+		}
 	}
-	else if (m_state == STATE_WAIT_FOR_SERVE)
+	else if (m_gameWorld.GetState() == GameWorld::STATE_WAITING_FOR_SERVE)
 	{
 		m_serveDelayTimer -= timeDelta;
 
@@ -150,104 +147,41 @@ void Server::Tick(float timeDelta)
 			BeginNewRound();
 		}
 	}
-	else if (m_state == STATE_WAIT_FOR_PLAYERS)
+	else if (m_gameWorld.GetState() == GameWorld::STATE_WAITING_FOR_PLAYERS)
 	{
-		// Position the ball floating statically above the net.
-		m_ball.SetPosition(Vector2f(m_gameConfig.view.width * 0.5f,
-			m_gameConfig.view.floorY - m_gameConfig.ball.serveHeight));
+		// Position the ball floating motionless above the net.
+		m_gameWorld.PositionBallAboveNet();
 	}
 	
 	// Broadcast a message to clients containing ball and player state info.
 	BitStream bsOut;
 	bsOut.Write((MessageID) PacketType::UPDATE_TICK);
-	bsOut.Write(m_ball.GetPosition());
-	bsOut.Write(m_ball.GetVelocity());
-	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
+	bsOut.Write(ball.GetPosition());
+	bsOut.Write(ball.GetVelocity());
+	for (auto it = m_gameWorld.players_begin(); it != m_gameWorld.players_end(); it++)
 	{
 		Slime* slime = it->second;
 
 		if (slime->HasJoinedGame())
 		{
 			bsOut.Write(slime->GetPlayerId());
-			slime->SerializeDynamics(bsOut, m_gameConfig);
+			slime->SerializeDynamics(bsOut, m_gameWorld.GetConfig());
 		}
 	}
 	bsOut.Write((int) -1);
 	m_networkManager.Broadcast(&bsOut, HIGH_PRIORITY, UNRELIABLE);
 }
 
-void Server::ProcessPlayerInput(Slime* player, const InputState& currentState, float deltaTime)
-{
-	Vector2f velocity = player->GetVelocity();
-	Vector2f position = player->GetPosition();
-
-	velocity.x = currentState.GetDesiredHorizontalDelta() * m_gameConfig.slime.moveSpeed;
-
-	if (currentState.IsJumping() && position.y >= m_gameConfig.view.floorY)
-		velocity.y = -m_gameConfig.slime.jumpSpeed;
-	
-	player->SetVelocity(velocity);
-}
-
-void Server::SimulatePlayerMovement(Slime* player, float deltaTime)
-{
-	Vector2f position = player->GetPosition();
-	Vector2f velocity = player->GetVelocity();
-	Team* team = &m_teams[player->GetTeamIndex()];
-	float minX = team->GetPlayRegion().GetLeft();
-	float maxX = team->GetPlayRegion().GetRight();
-	float radius = player->GetRadius();
-
-	// Integrate gravitational force.
-	velocity.y += (m_gameConfig.slime.gravity * 60.0f) * deltaTime;
-	
-	// Collide with floor and walls.
-	if (position.y >= m_gameConfig.view.floorY)
-	{
-		position.y = m_gameConfig.view.floorY;
-		if (velocity.y > 0.0f)
-			velocity.y = 0.0f;
-	}
-	if (position.x - radius <= minX)
-	{
-		position.x = minX + radius;
-		if (velocity.x < 0.0f)
-		velocity.x = 0.0f;
-	}
-	else if (position.x + radius >= maxX)
-	{
-		position.x = maxX - radius;
-		if (velocity.x > 0.0f)
-			velocity.x = 0.0f;
-	}
-
-	// Integrate velocity.
-	position += (velocity * 60.0f) * deltaTime;
-
-	player->SetPosition(position);
-	player->SetVelocity(velocity);
-}
-
 void Server::BeginNewRound()
 {
-	// Position the ball for the serving team.
-	m_ball.SetPosition(m_teams[m_servingTeamIndex].GetBallServePosition());
-	m_ball.SetVelocity(Vector2f::ZERO);
-
-	// Position the players in the middle of their areas.
-	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
-		it->second->SetPosition(m_teams[it->second->GetTeamIndex()].GetPlayerSpawnPosition());
-
-	// Tell the clients that the round has begun, letting them 
-	// move around again.
-	BitStream bsOut;
-	bsOut.Write((MessageID) PacketType::TEAM_SERVE);
-	m_networkManager.Broadcast(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED);
+	// Position the players and ball for a serve.
+	m_gameWorld.PositionBallForServe(m_servingTeamIndex);
+	m_gameWorld.PositionPlayersForServe();
 
 	if (AreBothTeamsReady())
 	{
 		// Begin playing the new round.
-		m_state = STATE_PLAY_GAME;
+		m_gameWorld.SetState(GameWorld::STATE_GAMEPLAY);
 	}
 	else
 	{
@@ -255,28 +189,29 @@ void Server::BeginNewRound()
 		// the waiting-fo-players state.
 		BeginWaitingForPlayers();
 	}
+
+	// Tell the clients that the round has begun, letting them move around again.
+	BitStream bsOut;
+	bsOut.Write((MessageID) PacketType::TEAM_SERVE);
+	m_networkManager.Broadcast(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED);
 }
 
 void Server::BeginWaitingForPlayers()
 {
-	m_state = STATE_WAIT_FOR_PLAYERS;
-
-	// Position the ball floating statically above the net.
-	m_ball.SetPosition(Vector2f(m_gameConfig.view.width * 0.5f,
-		m_gameConfig.view.floorY - m_gameConfig.ball.serveHeight));
+	m_gameWorld.SetState(GameWorld::STATE_WAITING_FOR_PLAYERS);
+	m_gameWorld.PositionBallAboveNet();
 }
 
 void Server::OnTeamScore(int teamIndex)
 {
 	m_servingTeamIndex = teamIndex;
-
-	m_state = STATE_WAIT_FOR_SERVE;
-	m_serveDelayTimer = m_gameConfig.scorePauseSeconds;
+	m_serveDelayTimer = m_gameWorld.GetConfig().scorePauseSeconds;
+	m_gameWorld.SetState(GameWorld::STATE_WAITING_FOR_SERVE);
 
 	// Tell the clients that a team has scored, freezing 
 	// their movement for a duration.
 	BitStream bsOut;
-	bsOut.Write((MessageID)PacketType::TEAM_SCORED);
+	bsOut.Write((MessageID) PacketType::TEAM_SCORED);
 	bsOut.Write(m_servingTeamIndex);
 	m_networkManager.Broadcast(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED);
 }
@@ -291,10 +226,10 @@ void Server::OnClientConnect(ClientProxy* client)
 	BitStream bsOut;
 	bsOut.Write((MessageID) PacketType::ACCEPT_CONNECTION);
 	bsOut.Write(client->GetPlayerId());
-	bsOut.Write(m_gameConfig);
-	bsOut.Write(m_teams[0].GetScore());
-	bsOut.Write(m_teams[1].GetScore());
-	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
+	bsOut.Write(m_gameWorld.GetConfig());
+	bsOut.Write(m_gameWorld.GetTeam(0).GetScore());
+	bsOut.Write(m_gameWorld.GetTeam(1).GetScore());
+	for (auto it = m_gameWorld.players_begin(); it != m_gameWorld.players_end(); it++)
 	{
 		Slime* slime = it->second;
 		if (slime->HasJoinedGame())
@@ -313,11 +248,10 @@ void Server::OnClientDisconnect(ClientProxy* client)
 	printf("Player ID %d has diconnected.\n", client->GetPlayerId());
 
 	// Find the player from the packet's RakNet GUID.
-	Slime* player = m_players[client->GetPlayerId()];
+	Slime* player = m_gameWorld.GetPlayer(client->GetPlayerId());
 
 	// Remove the player from memory.
-	delete player;
-	m_players.erase(client->GetPlayerId());
+	m_gameWorld.RemovePlayer(client->GetPlayerId());
 
 	// Tell the other clients a player has disconnected.
 	BitStream bsOut;
@@ -354,8 +288,7 @@ void Server::OnPlayerJoinTeam(ClientProxy* client, RakNet::BitStream& inStream)
 	int teamIndex;
 	
 	// Create a new player entity.
-	Slime* player = new Slime(client->GetPlayerId(), 0, 0, m_gameConfig.slime.radius);
-	m_players[client->GetPlayerId()] = player;
+	Slime* player = m_gameWorld.CreatePlayer(client->GetPlayerId());
 
 	// Read the packet.
 	inStream.Read(teamIndex);
@@ -365,7 +298,7 @@ void Server::OnPlayerJoinTeam(ClientProxy* client, RakNet::BitStream& inStream)
 	player->SetTeamIndex(teamIndex);
 	player->SetColorIndex(colorIndex);
 	player->SetJoinedGame(true);
-	player->SetPosition(m_teams[teamIndex].GetPlayerSpawnPosition());
+	player->SetPosition(m_gameWorld.GetTeam(teamIndex).GetPlayerSpawnPosition());
 
 	// Tell the other clients that a player has joined.
 	BitStream bsOut;
@@ -381,152 +314,20 @@ void Server::OnPlayerJoinTeam(ClientProxy* client, RakNet::BitStream& inStream)
 	// If so, then start the match.
 	if (AreBothTeamsReady())
 	{
-		m_state = STATE_WAIT_FOR_SERVE;
-		m_serveDelayTimer = m_gameConfig.scorePauseSeconds;
 		m_servingTeamIndex = 0;
-		for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
-			it->second->SetPosition(m_teams[it->second->GetTeamIndex()].GetPlayerSpawnPosition());
+		m_serveDelayTimer = m_gameWorld.GetConfig().scorePauseSeconds;
+		m_gameWorld.SetState(GameWorld::STATE_WAITING_FOR_SERVE);
+		m_gameWorld.PositionPlayersForServe();
+		m_gameWorld.PositionBallForServe(m_servingTeamIndex);
 		printf("There are enough players to start a match!\n");
 	}
-}
-
-void Server::UpdateBall()
-{
-	Vector2f position = m_ball.GetPosition();
-	Vector2f velocity = m_ball.GetVelocity();
-
-	velocity.y += m_gameConfig.ball.gravity;
-	position += velocity;
-
-	// Collide with slimes.
-	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
-	{
-		Slime& slime = *it->second;
-
-		if (!slime.HasJoinedGame())
-			continue;
-
-		Vector2f slimePos = slime.GetPosition();
-		Vector2f slimeVel = slime.GetVelocity();
-		Vector2f relPosition = position - slimePos;
-		Vector2f relVelocity = velocity - slimeVel;
-		float distSqr = relPosition.LengthSquared();
-		float radiusSum = m_ball.GetRadius() + slime.GetRadius();
-
-		if (relPosition.y < 0.0f && distSqr <= (radiusSum * radiusSum) && distSqr > 4.0f)
-		{
-			float dist = Math::Sqrt(distSqr);
-			Vector2f slime2ball = relPosition / dist;
-			float proj = slime2ball.Dot(relVelocity);
-			position = slimePos + (slime2ball * radiusSum);
-
-			if (proj <= 0.0f)
-			{
-				velocity += slimeVel - (2.0f * slime2ball * proj);
-				velocity.y -= m_gameConfig.ball.gravity * 0.5f;
-
-				if (velocity.x < -15)
-					velocity.x = -15;
-				if (velocity.x > 15)
-					velocity.x = 15;
-				if (velocity.y < -22)
-					velocity.y = -22;
-				if (velocity.y > 22)
-					velocity.y = 22;
-			}
-		}
-	}
-
-	// Collide ball with the net.
-	{
-		float radius = m_ball.GetRadius();
-		Vector2f v1(m_gameConfig.view.width * 0.5f, m_gameConfig.view.floorY -
-			m_gameConfig.net.height + m_gameConfig.net.depthBelowGround);
-		Vector2f v2(m_gameConfig.view.width * 0.5f, m_gameConfig.view.floorY +
-			m_gameConfig.net.depthBelowGround);
-
-		// Determine which voronoi region of the edge center of circle lies within.
-		float dot1 = (position - v1).Dot(v2 - v1);
-		float dot2 = (position - v2).Dot(v1 - v2);
-
-		// Closest to v1.
-		if (dot1 <= 0.0f)
-		{
-			if (position.DistToSqr(v1) < radius * radius)
-			{
-				Vector2f n = position - v1;
-				n.Normalize();
-				position = v1 + (radius * n);
-				if (velocity.Dot(n) < 0.0f)
-					velocity = velocity - (2.0f * velocity.Dot(n) * n);
-				printf("Ball collided with top of net\n");
-			}
-		}
-		// Closest to v2.
-		else if (dot2 <= 0.0f)
-		{
-			if (position.DistToSqr(v2) < radius * radius)
-			{
-				Vector2f n = position - v2;
-				n.Normalize();
-				position = v2 + (radius * n);
-				if (velocity.Dot(n) < 0.0f)
-					velocity = velocity - (2.0f * velocity.Dot(n) * n);
-			}
-		}
-		else if (Math::Abs(position.x - v1.x) < radius)
-		{
-			if (position.x < v1.x)
-			{
-				position.x = v1.x - radius;
-				if (velocity.x > 0.0f)
-					velocity.x = -velocity.x;
-			}
-			else
-			{
-				position.x = v1.x + radius;
-				if (velocity.x < 0.0f)
-					velocity.x = -velocity.x;
-			}
-		}
-	}
-
-	// Collide with the floor and walls.
-	if (position.x - m_ball.GetRadius() <= 0.0f)
-	{
-		position.x = m_ball.GetRadius();
-		if (velocity.x < 0.0f)
-			velocity.x = -velocity.x;
-	}
-	else if (position.x + m_ball.GetRadius() >= m_gameConfig.view.width)
-	{
-		position.x = m_gameConfig.view.width - m_ball.GetRadius();
-		if (velocity.x > 0.0f)
-			velocity.x = -velocity.x;
-	}
-	if (position.y + m_ball.GetRadius() >= m_gameConfig.view.floorY)
-	{
-		position.y = m_gameConfig.view.floorY - m_ball.GetRadius();
-		velocity = Vector2f::ZERO;
-		OnTeamScore(position.x < m_gameConfig.view.width * 0.5f ? 1 : 0);
-		//if (velocity.y > 0.0f)
-			//velocity.y = -velocity.y;
-	}
-
-	// Limit max speed.
-	float velLength = velocity.Length();
-	if (velLength > m_gameConfig.ball.maxSpeed)
-		velocity *= m_gameConfig.ball.maxSpeed / velLength;
-
-	m_ball.SetPosition(position);
-	m_ball.SetVelocity(velocity);
 }
 
 bool Server::AreBothTeamsReady()
 {
 	// Check if there is at least one ready player per team.
 	bool isTeamReady[2] = { false, false };
-	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
+	for (auto it = m_gameWorld.players_begin(); it != m_gameWorld.players_end(); it++)
 	{
 		if (it->second->HasJoinedGame())
 			isTeamReady[it->second->GetTeamIndex()] = true;

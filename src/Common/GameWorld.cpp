@@ -1,6 +1,7 @@
 #include "GameWorld.h"
 #include <math/MathLib.h>
 
+
 GameWorld::GameWorld()
 {
 }
@@ -16,6 +17,19 @@ GameWorld::~GameWorld()
 	m_players.clear();
 }
 
+void GameWorld::Initialize(const GameConfig& config)
+{
+	m_config = config;
+
+	m_state = STATE_WAITING_FOR_PLAYERS;
+
+	m_teams[0] = Team(0, "1", Rect2f(0.0f, 0.0f,
+		(m_config.view.width - m_config.net.width) * 0.5f, m_config.view.floorY), m_config);
+	m_teams[1] = Team(1, "2", Rect2f((m_config.view.width + m_config.net.width) * 0.5f,
+		0.0f, (m_config.view.width - m_config.net.width) * 0.5f, m_config.view.floorY), m_config);
+
+	m_ball.SetRadius(m_config.ball.radius);
+}
 
 Slime* GameWorld::GetPlayer(PlayerID playerId)
 {
@@ -27,15 +41,28 @@ Slime* GameWorld::GetPlayer(PlayerID playerId)
 
 Slime* GameWorld::CreatePlayer(PlayerID playerId)
 {
-	Slime* slime = new Slime();
-	slime->SetPlayerId(playerId);
+	Slime* slime = new Slime(playerId, 0, 0, m_config.slime.radius);
 	m_players[playerId] = slime;
 	return slime;
 }
 
 void GameWorld::RemovePlayer(PlayerID playerId)
 {
+	delete m_players[playerId];
 	m_players.erase(playerId);
+}
+
+void GameWorld::ProcessPlayerInput(Slime* player, const InputState& currentState, float timeDelta)
+{
+	Vector2f velocity = player->GetVelocity();
+	Vector2f position = player->GetPosition();
+
+	velocity.x = currentState.GetDesiredHorizontalDelta() * (m_config.slime.moveSpeed * 60.0f * timeDelta);
+
+	if (currentState.IsJumping() && position.y >= m_config.view.floorY)
+		velocity.y = -m_config.slime.jumpSpeed;
+
+	player->SetVelocity(velocity);
 }
 
 void GameWorld::SimulatePlayerMovement(Slime* player, float deltaTime)
@@ -196,7 +223,7 @@ void GameWorld::SimulateBallMovement(float deltaTime)
 		position.y = m_config.view.floorY - m_ball.GetRadius();
 		velocity = Vector2f::ZERO;
 
-		OnTeamScore(position.x < m_config.view.width * 0.5f ? 1 : 0);
+		//OnTeamScore(position.x < m_config.view.width * 0.5f ? 1 : 0);
 		//if (velocity.y > 0.0f)
 		//velocity.y = -velocity.y;
 	}
@@ -215,4 +242,25 @@ void GameWorld::OnTeamScore(int teamIndex)
 	m_state = STATE_WAITING_FOR_SERVE;
 	if (m_players.size() < 2)
 		m_state = STATE_WAITING_FOR_SERVE;
+}
+
+void GameWorld::PositionBallAboveNet()
+{
+	m_ball.SetPosition(Vector2f(m_config.view.width * 0.5f,
+		m_config.view.floorY - m_config.ball.serveHeight));
+	m_ball.SetVelocity(Vector2f::ZERO);
+}
+
+void GameWorld::PositionBallForServe(int servingTeamIndex)
+{
+	// Position the ball for the serving team.
+	m_ball.SetPosition(m_teams[servingTeamIndex].GetBallServePosition());
+	m_ball.SetVelocity(Vector2f::ZERO);
+}
+
+void GameWorld::PositionPlayersForServe()
+{
+	// Position the players in the middle of their areas.
+	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
+		it->second->SetPosition(m_teams[it->second->GetTeamIndex()].GetPlayerSpawnPosition());
 }

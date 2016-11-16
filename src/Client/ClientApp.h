@@ -57,6 +57,8 @@ private:
 	Font* m_fontScore;
 	Font* m_fontSmall;
 
+	GameWorld m_gameWorld;
+
 	// Game config
 	ColorScheme m_colorScheme;
 	GameConfig m_gameConfig;
@@ -70,7 +72,6 @@ private:
 	Ball m_ball;
 	Team m_teams[2];
 	Slime* m_player;
-	GameWorld m_gameWorld;
 
 	// Networking
 	PlayerMap m_players;

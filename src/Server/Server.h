@@ -18,7 +18,7 @@
 #include "Config.h"
 #include "MoveList.h"
 #include "NetworkManagerServer.h"
-
+#include "GameWorld.h"
 
 
 class Server : public NetworkEventHandler
@@ -38,39 +38,15 @@ public:
 	void OnPlayerJoinTeam(ClientProxy* client, RakNet::BitStream& inStream);
 
 private:
-
-	void UpdateBall();
-	void ProcessPlayerInput(Slime* player, const InputState& currentState, float deltaTime);
-	void SimulatePlayerMovement(Slime* player, float deltaTime);
-
 	void BeginWaitingForPlayers();
 	void BeginNewRound();
 	void OnTeamScore(int teamIndex);
-
 	bool AreBothTeamsReady();
 
-	enum
-	{
-		STATE_WAIT_FOR_PLAYERS = 0,
-		STATE_WAIT_FOR_SERVE,
-		STATE_PLAY_GAME,
-	};
-
-	typedef std::map<int, Slime*> PlayerMap;
-
-	// Game config
-	GameConfig m_gameConfig;
-
-	// Game state
+	NetworkManagerServer m_networkManager;
+	GameWorld m_gameWorld;
 	float m_serveDelayTimer;
 	int m_servingTeamIndex;
-	int m_state;
-	Ball m_ball;
-	PlayerMap m_players;
-	Team m_teams[2];
-
-	// Managers
-	NetworkManagerServer m_networkManager;
 };
 
 
