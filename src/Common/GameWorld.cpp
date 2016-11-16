@@ -57,7 +57,7 @@ void GameWorld::ProcessPlayerInput(Slime* player, const InputState& currentState
 	Vector2f velocity = player->GetVelocity();
 	Vector2f position = player->GetPosition();
 
-	velocity.x = currentState.GetDesiredHorizontalDelta() * (m_config.slime.moveSpeed * 60.0f * timeDelta);
+	velocity.x = currentState.GetDesiredHorizontalDelta() * m_config.slime.moveSpeed;
 
 	if (currentState.IsJumping() && position.y >= m_config.view.floorY)
 		velocity.y = -m_config.slime.jumpSpeed;
@@ -75,7 +75,7 @@ void GameWorld::SimulatePlayerMovement(Slime* player, float deltaTime)
 	float radius = player->GetRadius();
 
 	// Integrate gravitational force.
-	velocity.y += (m_config.slime.gravity * 60.0f) * deltaTime;
+	velocity.y += m_config.slime.gravity * deltaTime;
 
 	// Collide with floor and walls.
 	if (position.y >= m_config.view.floorY)
@@ -98,19 +98,21 @@ void GameWorld::SimulatePlayerMovement(Slime* player, float deltaTime)
 	}
 
 	// Integrate velocity.
-	position += (velocity * 60.0f) * deltaTime;
+	position += velocity * deltaTime;
 
 	player->SetPosition(position);
 	player->SetVelocity(velocity);
 }
 
-void GameWorld::SimulateBallMovement(float deltaTime)
+void GameWorld::SimulateBallMovement(float timeDelta)
 {
 	Vector2f position = m_ball.GetPosition();
 	Vector2f velocity = m_ball.GetVelocity();
 
-	velocity.y += m_config.ball.gravity;
-	position += velocity;
+	// Integrate gravitational force.
+	// Integrate velocity.
+	velocity.y += m_config.ball.gravity * timeDelta;
+	position += velocity * timeDelta;
 
 	// Collide with slimes.
 	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
@@ -137,16 +139,16 @@ void GameWorld::SimulateBallMovement(float deltaTime)
 			if (proj <= 0.0f)
 			{
 				velocity += slimeVel - (2.0f * slime2ball * proj);
-				velocity.y -= m_config.ball.gravity * 0.5f;
+				//velocity.y -= m_config.ball.gravity * 0.5f * timeDelta;
 
-				if (velocity.x < -15)
-					velocity.x = -15;
-				if (velocity.x > 15)
-					velocity.x = 15;
-				if (velocity.y < -22)
-					velocity.y = -22;
-				if (velocity.y > 22)
-					velocity.y = 22;
+				if (velocity.x < -m_config.ball.maxBounceXVelocity)
+					velocity.x = -m_config.ball.maxBounceXVelocity;
+				if (velocity.x > m_config.ball.maxBounceXVelocity)
+					velocity.x = m_config.ball.maxBounceXVelocity;
+				if (velocity.y < -m_config.ball.maxBounceYVelocity)
+					velocity.y = -m_config.ball.maxBounceYVelocity;
+				if (velocity.y > m_config.ball.maxBounceYVelocity)
+					velocity.y = m_config.ball.maxBounceYVelocity;
 			}
 		}
 	}
@@ -188,6 +190,7 @@ void GameWorld::SimulateBallMovement(float deltaTime)
 					velocity = velocity - (2.0f * velocity.Dot(n) * n);
 			}
 		}
+		// Closest to face.
 		else if (Math::Abs(position.x - v1.x) < radius)
 		{
 			if (position.x < v1.x)
@@ -262,5 +265,8 @@ void GameWorld::PositionPlayersForServe()
 {
 	// Position the players in the middle of their areas.
 	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
+	{
 		it->second->SetPosition(m_teams[it->second->GetTeamIndex()].GetPlayerSpawnPosition());
+		it->second->SetVelocity(Vector2f::ZERO);
+	}
 }

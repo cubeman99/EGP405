@@ -16,6 +16,7 @@ struct PacketType
 		PLAYER_LEFT,
 		TEAM_SCORED,
 		TEAM_SERVE,
+		WAITING_FOR_PLAYERS,
 		UPDATE_TICK,
 
 		// Client --> Server

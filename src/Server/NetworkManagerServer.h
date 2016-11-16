@@ -32,7 +32,8 @@ public:
 	NetworkManagerServer();
 	~NetworkManagerServer();
 
-	bool Initialize(unsigned short port, unsigned int maxPlayers, NetworkEventHandler* eventHandler);
+	bool Initialize(unsigned short port, unsigned int maxPlayers,
+		NetworkEventHandler* eventHandler);
 
 	void OnClientConnect(const RakNet::SystemAddress& address);
 	void OnClientDisconnect(ClientProxy* client);
@@ -46,8 +47,10 @@ public:
 	PlayerIDToClientProxyMap::iterator clients_begin();
 	PlayerIDToClientProxyMap::iterator clients_end();
 
-	void Broadcast(const RakNet::BitStream* bitStream, PacketPriority priority, PacketReliability reliability, const ClientProxy* ignoreClient = NULL);
-	void Send(const RakNet::BitStream* bitStream, PacketPriority priority, PacketReliability reliability, const ClientProxy* client);
+	void Broadcast(const RakNet::BitStream* bitStream, PacketPriority priority,
+		PacketReliability reliability, const ClientProxy* ignoreClient = NULL);
+	void Send(const RakNet::BitStream* bitStream, PacketPriority priority,
+		PacketReliability reliability, const ClientProxy* client);
 
 private:
 

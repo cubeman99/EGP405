@@ -25,7 +25,6 @@
 #include <Common/Config.h>
 #include "ClientApp.h"
 
-#define MAX_CLIENTS 1     // This is a 2 player game.
 #define SERVER_PORT 60000
 
 using namespace std;

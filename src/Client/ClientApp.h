@@ -43,6 +43,7 @@ private:
 	void ReceivePacketPlayerLeft(RakNet::BitStream& inStream);
 	void ReceivePacketTeamScored(RakNet::BitStream& inStream);
 	void ReceivePacketTeamServe(RakNet::BitStream& inStream);
+	void ReceivePacketWaitingForPlayers(RakNet::BitStream& inStream);
 	void ReceivePacketUpdateTick(RakNet::BitStream& inStream);
 
 	void DrawSlime(Graphics& g, const Slime& slime, const Vector2f& lookAtPoint);

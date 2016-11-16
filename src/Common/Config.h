@@ -18,6 +18,8 @@ struct GameConfig
 		float gravity;
 		float maxSpeed;
 		float serveHeight;
+		float maxBounceXVelocity;
+		float maxBounceYVelocity;
 	} ball;
 
 	struct

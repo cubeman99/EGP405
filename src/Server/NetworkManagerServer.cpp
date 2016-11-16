@@ -119,10 +119,9 @@ void NetworkManagerServer::ReceivePacket(RakNet::Packet* packet)
 		ReceiveInputPacket(client, inStream);
 		break;
 	default:
+		// Notify the event handler.
 		if (packetType >= PacketType::EVENTS_BEGIN && packetType < PacketType::EVENTS_END)
-		{
 			m_eventHandler->OnClientEvent(client, packetType, inStream);
-		}
 		break;
 	}
 }

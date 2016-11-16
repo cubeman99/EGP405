@@ -300,6 +300,9 @@ void ClientApp::ReceivePackets()
 		case PacketType::TEAM_SERVE:
 			ReceivePacketTeamServe(inStream);
 			break;
+		case PacketType::WAITING_FOR_PLAYERS:
+			ReceivePacketWaitingForPlayers(inStream);
+			break;
 		case PacketType::UPDATE_TICK:
 			ReceivePacketUpdateTick(inStream);
 			break;
@@ -362,6 +365,11 @@ void ClientApp::ReceivePacketTeamScored(BitStream& inStream)
 void ClientApp::ReceivePacketTeamServe(BitStream& inStream)
 {
 	m_gameWorld.SetState(GameWorld::STATE_GAMEPLAY);
+}
+
+void ClientApp::ReceivePacketWaitingForPlayers(BitStream& inStream)
+{
+	m_gameWorld.SetState(GameWorld::STATE_WAITING_FOR_PLAYERS);
 }
 
 void ClientApp::ReceivePacketUpdateTick(BitStream& inStream)

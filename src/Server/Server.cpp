@@ -22,22 +22,24 @@ int Server::Initialize()
 {
 	// Configure & initialize the game world.
 	GameConfig config;
-	config.maxPlayers			= 20;
-	config.scorePauseSeconds	= 1.0f;
-	config.view.floorY			= 350;
-	config.view.width			= 750;
-	config.view.height			= 500;
-	config.net.width			= 4;
-	config.net.height			= 41;
-	config.net.depthBelowGround	= 4;
-	config.ball.radius			= 11;
-	config.ball.gravity			= 0.22f;
-	config.ball.maxSpeed		= 10;
-	config.ball.serveHeight		= 130;
-	config.slime.radius			= 37;
-	config.slime.gravity		= 0.5f;
-	config.slime.jumpSpeed		= 9;
-	config.slime.moveSpeed		= 4.5f;
+	config.maxPlayers				= 20;
+	config.scorePauseSeconds		= 1.0f;
+	config.view.floorY				= 350;
+	config.view.width				= 750;
+	config.view.height				= 500;
+	config.net.width				= 4;
+	config.net.height				= 41;
+	config.net.depthBelowGround		= 4;
+	config.ball.radius				= 11;
+	config.ball.gravity				= 0.22f * 60.0f * 60.0f;
+	config.ball.maxSpeed			= 10 * 60.0f;
+	config.ball.serveHeight			= 130;
+	config.ball.maxBounceXVelocity	= 15 * 60;
+	config.ball.maxBounceYVelocity	= 22 * 60;
+	config.slime.radius				= 37;
+	config.slime.gravity			= 0.5f * 60.0f * 60.0f;
+	config.slime.jumpSpeed			= 9 * 60.0f;
+	config.slime.moveSpeed			= 4.5f * 60.0f;
 
 	m_gameWorld.Initialize(config);
 	m_gameWorld.SetState(GameWorld::STATE_WAITING_FOR_PLAYERS);
@@ -103,22 +105,26 @@ void Server::Tick(float timeDelta)
 	// Process any queued packets.
 	m_networkManager.ReceivePackets();
 
-	// Process input and simulate movement for each player.
-	for (auto it = m_gameWorld.players_begin(); it != m_gameWorld.players_end(); it++)
+	// Process input and simulate movement for each client.
+	for (auto it = m_networkManager.clients_begin(); it != m_networkManager.clients_end(); it++)
 	{
-		Slime* player = it->second;
-		ClientProxy* client = m_networkManager.GetClientProxy(player->GetPlayerId());
+		MoveList& moveList = it->second->GetUnprocessedMoveList();
+		Slime* player = m_gameWorld.GetPlayer(it->second->GetPlayerId());
 
-		MoveList& moveList = client->GetUnprocessedMoveList();
-
-		for (int i = 0; i < moveList.GetMoveCount(); i++)
+		// Process movement when in gameplay.
+		if (player != NULL &&
+			(m_gameWorld.GetState() == GameWorld::STATE_GAMEPLAY ||
+			m_gameWorld.GetState() == GameWorld::STATE_WAITING_FOR_PLAYERS))
 		{
-			Move& unprocessedMove = moveList[i];
-			const InputState& currentState = unprocessedMove.GetInputState();
-			float moveTimeDelta = unprocessedMove.GetDeltaTime();
+			for (int i = 0; i < moveList.GetMoveCount(); i++)
+			{
+				Move& unprocessedMove = moveList[i];
+				const InputState& currentState = unprocessedMove.GetInputState();
+				float moveTimeDelta = unprocessedMove.GetDeltaTime();
 
-			m_gameWorld.ProcessPlayerInput(player, currentState, moveTimeDelta);
-			m_gameWorld.SimulatePlayerMovement(player, moveTimeDelta);
+				m_gameWorld.ProcessPlayerInput(player, currentState, moveTimeDelta);
+				m_gameWorld.SimulatePlayerMovement(player, moveTimeDelta);
+			}
 		}
 
 		moveList.Clear();
@@ -140,6 +146,7 @@ void Server::Tick(float timeDelta)
 	}
 	else if (m_gameWorld.GetState() == GameWorld::STATE_WAITING_FOR_SERVE)
 	{
+		// Pause the game until the next round.
 		m_serveDelayTimer -= timeDelta;
 
 		if (m_serveDelayTimer <= 0.0f)
@@ -182,18 +189,23 @@ void Server::BeginNewRound()
 	{
 		// Begin playing the new round.
 		m_gameWorld.SetState(GameWorld::STATE_GAMEPLAY);
+
+		// Tell the clients that the round has begun, letting them move around again.
+		BitStream bsOut;
+		bsOut.Write((MessageID) PacketType::TEAM_SERVE);
+		m_networkManager.Broadcast(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED);
 	}
 	else
 	{
 		// If there isn't one person-per-team, then go back to 
 		// the waiting-fo-players state.
 		BeginWaitingForPlayers();
+		
+		// Tell the clients that we are waiting for more players.
+		BitStream bsOut;
+		bsOut.Write((MessageID) PacketType::WAITING_FOR_PLAYERS);
+		m_networkManager.Broadcast(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED);
 	}
-
-	// Tell the clients that the round has begun, letting them move around again.
-	BitStream bsOut;
-	bsOut.Write((MessageID) PacketType::TEAM_SERVE);
-	m_networkManager.Broadcast(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED);
 }
 
 void Server::BeginWaitingForPlayers()
@@ -265,20 +277,8 @@ void Server::OnClientEvent(ClientProxy* client, NetworkEventID eventId, RakNet::
 	switch (eventId)
 	{
 	case PacketType::JOIN_TEAM:
-	{
 		OnPlayerJoinTeam(client, inStream);
 		break;
-	}
-	//case PacketType::CLIENT_UPDATE_TICK:
-	//{
-	//	// Read the packet.
-	//	BitStream bsIn(packet->data, packet->length, false);
-	//	bsIn.IgnoreBytes(sizeof(MessageID));
-	//	int playerId = m_guidToPlayerMap[packet->guid];
-	//	Slime* player = m_players[playerId];
-	//	player->DeserializeDynamics(bsIn, m_gameConfig);
-	//	break;
-	//}
 	}
 }
 

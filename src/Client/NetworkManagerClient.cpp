@@ -30,7 +30,7 @@ void NetworkManagerClient::SendInputPacket()
 		int moveCount = moveList.GetMoveCount();
 		//int startIndex = (moveCount > 3 ? moveCount - 3 - 1 : 0);
 		int startIndex = 0;
-		inputPacket.Write(moveCount - startIndex);//, 2);
+		inputPacket.Write(moveCount - startIndex);
 		for (int i = startIndex; i < moveCount; ++i)
 			moveList[i].Write(inputPacket);
 		
@@ -49,5 +49,6 @@ void NetworkManagerClient::Send(const RakNet::BitStream* bitStream,
 void NetworkManagerClient::CloseConnection()
 {
 	m_peerInterface->CloseConnection(m_serverAddress, true, 0, IMMEDIATE_PRIORITY);
+	Sleep(100);
 }
 
