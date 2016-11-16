@@ -49,35 +49,35 @@ private:
 
 	enum
 	{
-		STATE_CHOOSE_COLOR = 0,
-		STATE_CHOOSE_TEAM,
-		STATE_PLAY_GAME,
-		STATE_WAIT_FOR_SERVE,
+		CLIENT_STATE_CHOOSE_COLOR = 0,
+		CLIENT_STATE_CHOOSE_TEAM,
+		CLIENT_STATE_PLAY_GAME,
+		CLIENT_STATE_WAIT_FOR_SERVE,
 	};
 
 	typedef std::map<PlayerID, Slime*> PlayerMap;
 
 	// Resources
-	Texture* m_testTexture;
-	Font* m_fontScore;
-	Font* m_fontSmall;
-
-	GameWorld m_gameWorld;
-
+	Texture*	m_testTexture;
+	Font*		m_fontScore;
+	Font*		m_fontSmall;
+	
 	// Client game config
-	ColorScheme m_colorScheme;
-	float m_chooseColorButtonRadius;
-	int m_selectedColorButtonIndex;
-	std::vector<Vector2f> m_chooseColorButtons;
-	std::vector<Rect2f> m_joinTeamButtons;
+	ColorScheme				m_colorScheme;
+	float					m_chooseColorButtonRadius;
+	int						m_selectedColorButtonIndex;
+	std::vector<Vector2f>	m_chooseColorButtons;
+	std::vector<Rect2f>		m_joinTeamButtons;
 
 	// Client game state
-	int m_state;
-	Slime* m_player;
+	GameWorld	m_gameWorld;
+	int			m_state;
+	Slime*		m_player;
 
-	RakNet::RakPeerInterface* m_peerInterface;
-	InputManager m_inputManager;
-	NetworkManagerClient m_networkManager;
+	// Managers
+	RakNet::RakPeerInterface*	m_peerInterface;
+	InputManager				m_inputManager;
+	NetworkManagerClient		m_networkManager;
 };
 
 

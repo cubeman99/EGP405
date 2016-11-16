@@ -56,7 +56,6 @@ private:
 	PlayerIDToClientProxyMap m_playerIdToClientProxyMap;
 	RakNet::RakPeerInterface* m_peerInterface;
 	RakNet::SystemAddress m_serverAddress;
-
 	NetworkEventHandler* m_eventHandler;
 };
 

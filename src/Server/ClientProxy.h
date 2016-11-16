@@ -21,9 +21,9 @@ public:
 
 private:
 	RakNet::SystemAddress m_socketAddress;
-	int m_playerId;
-	MoveList m_unprocessedMoveList;
-	bool m_isLastMoveTimestampDirty;
+	int			m_playerId;
+	MoveList	m_unprocessedMoveList;
+	bool		m_isLastMoveTimestampDirty;
 };
 
 

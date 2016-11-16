@@ -24,12 +24,18 @@
     <ClCompile Include="..\..\src\Client\NetworkManagerClient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\Client\InputManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\Client\ClientApp.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Client\NetworkManagerClient.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Client\InputManager.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

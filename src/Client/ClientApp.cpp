@@ -91,13 +91,13 @@ ClientApp::~ClientApp()
 {
 	delete m_fontScore;
 	delete m_fontSmall;
-
 	m_player = NULL;
 }
 
 void ClientApp::ReadConnectionAcceptedPacket(RakNet::Packet* packet)
 {
 	int playerId, score1, score2;
+	int colorIndex, teamIndex;
 	GameConfig config;
 
 	m_networkManager.Initialize(m_peerInterface, &m_inputManager, packet->systemAddress);
@@ -116,15 +116,13 @@ void ClientApp::ReadConnectionAcceptedPacket(RakNet::Packet* packet)
 
 	while (true)
 	{
-		int colorIndex;
-		int teamIndex;
 		bsIn.Read(playerId);
 		if (playerId < 0)
 			break;
 		bsIn.Read(teamIndex);
 		bsIn.Read(colorIndex);
 
-		Slime* slime = m_gameWorld.CreatePlayer(playerId); 
+		Slime* slime = m_gameWorld.CreatePlayer(playerId);
 		slime->SetTeamIndex(teamIndex);
 		slime->SetColorIndex(colorIndex);
 	}
@@ -170,7 +168,7 @@ void ClientApp::OnInitialize()
 			(config.view.height * 0.5f) + y));
 	}
 
-	m_state = STATE_CHOOSE_COLOR;
+	m_state = CLIENT_STATE_CHOOSE_COLOR;
 }
 
 void ClientApp::OnUpdate(float timeDelta)
@@ -182,14 +180,14 @@ void ClientApp::OnUpdate(float timeDelta)
 	// Escape: Quit the game.
 	if (GetKeyboard()->IsKeyPressed(Keys::ESCAPE))
 	{
-		//m_peerInterface->CloseConnection(m_serverGuid, true, 0, IMMEDIATE_PRIORITY);
+		m_networkManager.CloseConnection();
 		Quit();
 		return;
 	}
 
 	Vector2f mousePos((float) GetMouse()->GetX(), (float) GetMouse()->GetY());
 
-	if (m_state == STATE_CHOOSE_COLOR)
+	if (m_state == CLIENT_STATE_CHOOSE_COLOR)
 	{
 		m_selectedColorButtonIndex = -1;
 
@@ -207,12 +205,12 @@ void ClientApp::OnUpdate(float timeDelta)
 		if (m_selectedColorButtonIndex >= 0 &&
 			GetMouse()->IsButtonPressed(MouseButtons::LEFT))
 		{
-			m_state = STATE_CHOOSE_TEAM;
+			m_state = CLIENT_STATE_CHOOSE_TEAM;
 		}
 
 		m_player->SetPosition(Vector2f(config.view.width * 0.5f, config.view.height * 0.9f));
 	}
-	else if (m_state == STATE_CHOOSE_TEAM)
+	else if (m_state == CLIENT_STATE_CHOOSE_TEAM)
 	{
 		m_selectedColorButtonIndex = -1;
 
@@ -230,7 +228,7 @@ void ClientApp::OnUpdate(float timeDelta)
 		if (m_selectedColorButtonIndex >= 0 &&
 			GetMouse()->IsButtonPressed(MouseButtons::LEFT))
 		{
-			m_state = STATE_PLAY_GAME;
+			m_state = CLIENT_STATE_PLAY_GAME;
 			m_player->SetTeamIndex(m_selectedColorButtonIndex);
 			m_player->SetPosition(Vector2f(
 				config.view.width * (0.25f + (0.5f * m_player->GetTeamIndex())),
@@ -248,24 +246,32 @@ void ClientApp::OnUpdate(float timeDelta)
 			m_player->SetPosition(Vector2f(config.view.width * 0.5f, config.view.height * 0.9f));
 		}
 	}
-	else if (m_state == STATE_PLAY_GAME)
+	else
 	{
-		// Update input.
-		m_inputManager.Update(timeDelta);
+		// Update Game play:
 
-		// Send occasional input packets.
-		if (m_inputManager.GetMoveList().GetMoveCount() >= 1)
-			m_networkManager.SendInputPacket();
-	}
-	else if (m_state == STATE_WAIT_FOR_SERVE)
-	{
-		// can't move while waiting for serve.
+		if (m_gameWorld.GetState() == GameWorld::STATE_GAMEPLAY ||
+			m_gameWorld.GetState() == GameWorld::STATE_WAITING_FOR_PLAYERS)
+		{
+			// Update input.
+			m_inputManager.Update(timeDelta);
+
+			// Send occasional input packets.
+			if (m_inputManager.GetMoveList().GetMoveCount() >= 1)
+				m_networkManager.SendInputPacket();
+		}
+		else if (m_gameWorld.GetState() == GameWorld::STATE_WAITING_FOR_SERVE)
+		{
+			// can't move while waiting for serve.
+		}
 	}
 }
 
 void ClientApp::ReceivePackets()
 {
 	Packet *packet;
+
+	// TODO: Find a better way to do this without big switch.
 
 	for (packet = m_peerInterface->Receive(); packet != NULL;
 		m_peerInterface->DeallocatePacket(packet),
@@ -348,19 +354,14 @@ void ClientApp::ReceivePacketTeamScored(BitStream& inStream)
 	inStream.Read(scoringTeamIndex);
 	m_gameWorld.GetTeam(scoringTeamIndex).SetScore(
 		m_gameWorld.GetTeam(scoringTeamIndex).GetScore() + 1);
+	m_gameWorld.SetState(GameWorld::STATE_WAITING_FOR_SERVE);
+
 	printf("Team %d scored!\n", scoringTeamIndex);
-	m_state = STATE_WAIT_FOR_SERVE;
 }
 
 void ClientApp::ReceivePacketTeamServe(BitStream& inStream)
 {
-	if (m_state != STATE_CHOOSE_COLOR && m_state != STATE_CHOOSE_TEAM)
-	{
-		m_player->SetPosition(m_gameWorld.GetTeam(m_player->GetTeamIndex())
-			.GetPlayerSpawnPosition());
-		m_player->SetVelocity(Vector2f::ZERO);
-		m_state = STATE_PLAY_GAME;
-	}
+	m_gameWorld.SetState(GameWorld::STATE_GAMEPLAY);
 }
 
 void ClientApp::ReceivePacketUpdateTick(BitStream& inStream)
@@ -474,13 +475,13 @@ void ClientApp::OnRender()
 	{
 		Slime* slime = it->second;
 		Vector2f lookAtPoint = ball.GetPosition();
-		if (slime == m_player && (m_state == STATE_CHOOSE_COLOR || m_state == STATE_CHOOSE_TEAM))
+		if (slime == m_player && (m_state == CLIENT_STATE_CHOOSE_COLOR || m_state == CLIENT_STATE_CHOOSE_TEAM))
 			lookAtPoint = mousePos;
 		DrawSlime(g, *slime, lookAtPoint);
 	}
 
 	// Draw state-specific stuff.
-	if (m_state == STATE_CHOOSE_COLOR)
+	if (m_state == CLIENT_STATE_CHOOSE_COLOR)
 	{
 		// Draw the prompt.
 		g.DrawString(m_fontScore, "Choose a color!",
@@ -497,7 +498,7 @@ void ClientApp::OnRender()
 			g.DrawCircle(m_chooseColorButtons[i], r, m_colorScheme.ui.chooseColorButton.outlineColor);
 		}
 	}
-	else if (m_state == STATE_CHOOSE_TEAM)
+	else if (m_state == CLIENT_STATE_CHOOSE_TEAM)
 	{
 		// Draw the prompt.
 		g.DrawString(m_fontScore, "Choose a team!",
@@ -514,7 +515,7 @@ void ClientApp::OnRender()
 				m_colorScheme.ui.joinTeamButton.textColor, Align::CENTERED);
 		}
 	}
-	else if (m_state == STATE_PLAY_GAME || m_state == STATE_WAIT_FOR_SERVE)
+	else if (m_state == CLIENT_STATE_PLAY_GAME || m_state == CLIENT_STATE_WAIT_FOR_SERVE)
 	{
 		// Draw the score.
 		std::stringstream strStream;

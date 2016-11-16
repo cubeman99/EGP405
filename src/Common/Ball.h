@@ -17,7 +17,6 @@ public:
 	
 	const Vector2f& GetPosition() const;
 	const Vector2f& GetVelocity() const;
-	const Color& GetColor() const;
 	float GetRadius() const;
 	
 	// TODO: serialize/deserialize

@@ -5,6 +5,8 @@
 #include <math/Vector2f.h>
 #include <vector>
 
+// Configuration values for a game of Slime Volleyball.
+
 #pragma pack(1)
 struct GameConfig
 {
@@ -44,6 +46,7 @@ struct GameConfig
 	int maxPlayers;
 };
 #pragma pack()
+
 
 struct ColorScheme
 {

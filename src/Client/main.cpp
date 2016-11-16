@@ -63,7 +63,7 @@ int main()
 	RakNet::SystemAddress serverAddress;
 	int connectionResult = 0;
 
-	// Wait for connection.
+	// Wait for connection handshake to pass.
 	Packet *packet;
 	while (connectionResult == 0 || connectionResult == 1)
 	{
@@ -72,26 +72,19 @@ int main()
 		{
 			switch (packet->data[0])
 			{
-			// CLIENT SPECIFIC MESSAGES:
 			case ID_NO_FREE_INCOMING_CONNECTIONS:
-			{
 				printf("Server is full!\n");
 				connectionResult = -1;
 				break;
-			}
 			case ID_CONNECTION_REQUEST_ACCEPTED:
-			{
 				printf("Connected successfully!\n");
 				serverAddress = packet->systemAddress;
 				connectionResult = 1;
 				break;
-			}
 			case PacketType::ACCEPT_CONNECTION:
-			{
 				app.ReadConnectionAcceptedPacket(packet);
 				connectionResult = 2;
 				break;
-			}
 			}
 		}
 	}

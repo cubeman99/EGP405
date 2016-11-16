@@ -8,7 +8,8 @@ NetworkManagerClient::NetworkManagerClient() :
 {
 }
 
-void NetworkManagerClient::Initialize(RakNet::RakPeerInterface* peerInterface, InputManager* inputManager, const RakNet::SystemAddress& serverAddress)
+void NetworkManagerClient::Initialize(RakNet::RakPeerInterface* peerInterface,
+	InputManager* inputManager, const RakNet::SystemAddress& serverAddress)
 {
 	m_peerInterface = peerInterface;
 	m_inputManager = inputManager;
@@ -39,7 +40,14 @@ void NetworkManagerClient::SendInputPacket()
 	}
 }
 
-void NetworkManagerClient::Send(const RakNet::BitStream* bitStream, PacketPriority priority, PacketReliability reliability)
+void NetworkManagerClient::Send(const RakNet::BitStream* bitStream,
+	PacketPriority priority, PacketReliability reliability)
 {
 	m_peerInterface->Send(bitStream, priority, reliability, 0, m_serverAddress, false);
 }
+
+void NetworkManagerClient::CloseConnection()
+{
+	m_peerInterface->CloseConnection(m_serverAddress, true, 0, IMMEDIATE_PRIORITY);
+}
+
