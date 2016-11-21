@@ -1,13 +1,8 @@
 
 
-Assignment 3: Create a basic pong game
+Assignment 3b: Input Handling in Pong
 EGP-405-01
 By David Jordan
-Due 10/26/2016
+Due 11/21/2016
 
-I decided to go with a variation on the game pong called Slime Volleyball, which was originally a singleplayer (or hotseat multiplayer) online game. In this game, there are two teams of players, or "slimes", and a ball. The players must hit the ball to bounce it over the net to have it land on their opponent's field in order to score a point. The scoring team gets to serve the next round. I believe Slime Volleyball was a suitable alternative to Pong because they both have the same game concepts: players (slimes/paddles), and a ball. They are also both "twitch" based games, where it is dependant on reflexes to play.
-
-In terms of replication, the server initializes the world's metrics and rules in a GameConfig class, and sends that to the clients upon connection (the whole class is serialized). Both client and server play their part in updating the world state. The client keeps track of its own position and velocity, updating them based on key presses, and then sending that info to the server. The server holds the positions of the ball and all players, and it performs the ball physics, then relaying the ball and player positions back to the clients. 
-
-I did implement a small amount of compression/serialization. In sending player positions/velocities, I created serialization and serialization functions in the Slime class. Because this is a side-scoll game with gravity, the players will frequently be on the ground. I took advantage of this by not serialization a player's y-position if he is on the ground, and also adding a single bit to tell if the player is on the ground or not. I did this similarly with player velocity, checking if its x-y components are equal to zero.
-
+Previously, the individual clients simulated their own movement and sent their positions to the server. But now, the client is only sending lists of "moves" to the server, and the server is fully authoritative, simulating ball AND player movement. The client accumulates input state and moves over time, sending an input packet once it has three moves. When the server receives these input packets, it adjusts player velocities and simulates their movement over time deltas. I had to change my speed units from pixels-per-frame to pixels-per-second (and acceleration to pixels-per-second-squared) to make them work better with time deltas of seconds. The server then sends updated positions back to the clients for them to display. Also, because input packets are only sent every three moves, and because I have not implemented any interpolation or client side prediction, the frame rate is visually 20 fps instead of 60 fps.
