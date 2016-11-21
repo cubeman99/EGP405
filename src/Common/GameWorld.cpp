@@ -131,15 +131,17 @@ void GameWorld::SimulateBallMovement(float timeDelta)
 
 		if (relPosition.y < 0.0f && distSqr <= (radiusSum * radiusSum) && distSqr > 4.0f)
 		{
+			// We have collided! Snap position to the edge of the slime.
 			float dist = Math::Sqrt(distSqr);
 			Vector2f slime2ball = relPosition / dist;
 			float proj = slime2ball.Dot(relVelocity);
 			position = slimePos + (slime2ball * radiusSum);
 
+			// Bounce with 100% elasticity (if moving toward the slime).
 			if (proj <= 0.0f)
 			{
 				velocity += slimeVel - (2.0f * slime2ball * proj);
-				//velocity.y -= m_config.ball.gravity * 0.5f * timeDelta;
+				velocity.y -= m_config.ball.gravity * timeDelta;
 
 				if (velocity.x < -m_config.ball.maxBounceXVelocity)
 					velocity.x = -m_config.ball.maxBounceXVelocity;
@@ -175,7 +177,6 @@ void GameWorld::SimulateBallMovement(float timeDelta)
 				position = v1 + (radius * n);
 				if (velocity.Dot(n) < 0.0f)
 					velocity = velocity - (2.0f * velocity.Dot(n) * n);
-				printf("Ball collided with top of net\n");
 			}
 		}
 		// Closest to v2.
