@@ -20,6 +20,21 @@ const Move& MoveList::AddMove(const Move& move)
 	return m_moves.back();
 }
 
+bool MoveList::AddMoveIfNew(const Move& move)
+{
+	float timeStamp = move.GetTimeStamp();
+
+	if (timeStamp > m_lastMoveTimeStamp)
+	{
+		float timeDelta = (m_lastMoveTimeStamp >= 0.0f ?
+			timeStamp - m_lastMoveTimeStamp : 0.0f);
+		m_lastMoveTimeStamp = timeStamp;
+		m_moves.emplace_back(move.GetInputState(), timeStamp, timeDelta);
+		return true;
+	}
+	return false;
+}
+
 void MoveList::Clear()
 {
 	m_moves.clear();

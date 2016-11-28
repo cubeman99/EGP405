@@ -11,7 +11,8 @@ public:
 	MoveList();
 
 	const Move& AddMove(const InputState& inputState, float timeStamp);
-	const Move& AddMove(const Move& inputState);
+	const Move& AddMove(const Move& move);
+	bool AddMoveIfNew(const Move& move);
 	void Clear();
 
 	inline bool HasMoves() const { return !m_moves.empty(); }

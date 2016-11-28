@@ -131,11 +131,17 @@ void NetworkManagerServer::ReceiveInputPacket(ClientProxy* client, RakNet::BitSt
 	int moveCount;
 	Move move;
 
+	// Handle each move in the move list.
 	inputPacket.Read(moveCount);
 	for (int i = 0; i < moveCount; ++i)
 	{
 		move.Read(inputPacket);
-		client->GetUnprocessedMoveList().AddMove(move);
+
+		// Add the move if it is new.
+		if (client->GetUnprocessedMoveList().AddMoveIfNew(move))
+		{
+			client->SetIsLastMoveTimestampDirty(true);
+		}
 	}
 }
 
