@@ -29,6 +29,8 @@ private:
 	RakNet::SystemAddress m_serverAddress;
 
 	InputManager* m_inputManager;
+
+	float m_avgRoundTripTime;
 };
 
 

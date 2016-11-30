@@ -17,6 +17,8 @@ public:
 	MoveList& GetMoveList() { return m_moveList; }
 	const MoveList& GetMoveList() const { return m_moveList; }
 
+	inline float GetTimeStamp() { return m_timeStamp; }
+
 private:
 	InputState m_inputState;
 	MoveList m_moveList;

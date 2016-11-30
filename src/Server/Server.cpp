@@ -57,7 +57,7 @@ int Server::Initialize()
 
 int Server::Run()
 {
-	float m_tickRate = 60.0f;
+	float m_tickRate = 20.0f;
 
 	float m_currentTickRate = m_tickRate;
 	float m_frameTime = 1.0f / m_tickRate;
@@ -159,24 +159,31 @@ void Server::Tick(float timeDelta)
 		// Position the ball floating motionless above the net.
 		m_gameWorld.PositionBallAboveNet();
 	}
-	
-	// Broadcast a message to clients containing ball and player state info.
-	BitStream bsOut;
-	bsOut.Write((MessageID) PacketType::UPDATE_TICK);
-	bsOut.Write(ball.GetPosition());
-	bsOut.Write(ball.GetVelocity());
-	for (auto it = m_gameWorld.players_begin(); it != m_gameWorld.players_end(); it++)
-	{
-		Slime* slime = it->second;
 
-		if (slime->HasJoinedGame())
+	// Send state info back to the clients.
+	for (auto it = m_networkManager.clients_begin(); it != m_networkManager.clients_end(); it++)
+	{
+		ClientProxy* client = it->second;
+
+		// Write the client's info.
+		BitStream bsOut;
+		bsOut.Write((MessageID) PacketType::UPDATE_TICK);
+		m_networkManager.WriteLastMoveTimestampIfDirty(bsOut, it->second);
+		bsOut.Write(ball.GetPosition());
+		bsOut.Write(ball.GetVelocity());
+		for (auto it2 = m_gameWorld.players_begin(); it2 != m_gameWorld.players_end(); it2++)
 		{
-			bsOut.Write(slime->GetPlayerId());
-			slime->SerializeDynamics(bsOut, m_gameWorld.GetConfig());
+			Slime* slime = it2->second;
+
+			if (slime->HasJoinedGame())
+			{
+				bsOut.Write(slime->GetPlayerId());
+				slime->SerializeDynamics(bsOut, m_gameWorld.GetConfig());
+			}
 		}
+		bsOut.Write((int) -1);
+		m_networkManager.Send(&bsOut, HIGH_PRIORITY, UNRELIABLE, client);
 	}
-	bsOut.Write((int) -1);
-	m_networkManager.Broadcast(&bsOut, HIGH_PRIORITY, UNRELIABLE);
 }
 
 void Server::BeginNewRound()

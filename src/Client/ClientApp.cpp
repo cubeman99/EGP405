@@ -1,5 +1,6 @@
 #include "ClientApp.h"
 #include <GameLib/graphics/Graphics.h>
+#include <GameLib/util/Timing.h>
 #include <Common/Config.h>
 #include <math/MathLib.h>
 #include <sstream>
@@ -61,6 +62,30 @@ ClientApp::ClientApp(RakNet::RakPeerInterface* peerInterface) :
 	//m_colorScheme.slime.bodyColors.push_back(Color::BLACK);
 
 	// Thanksgiving color theme:
+	//m_colorScheme.ballColor							= Color(138, 160, 64);
+	//m_colorScheme.groundColor						= Color(183, 130, 66);
+	//m_colorScheme.netColor							= Color(242, 181, 26);
+	//m_colorScheme.skyColor							= Color(204, 192, 177);
+	//m_colorScheme.slime.eyeColor					= Color::WHITE;
+	//m_colorScheme.slime.pupilColor					= Color::BLACK;
+	//m_colorScheme.ui.chooseColorButton.outlineColor	= Color::BLACK;
+	//m_colorScheme.ui.joinTeamButton.backgroundColor	= Color(196, 89, 27);
+	//m_colorScheme.ui.joinTeamButton.textColor		= m_colorScheme.skyColor;
+	//m_colorScheme.ui.gameInfoTextColor				= Color::BLACK;
+	//m_colorScheme.ui.menuPromptTextColor			= Color::BLACK;
+	//m_colorScheme.ui.scoreTextColor					= Color::BLACK;
+	//m_colorScheme.slime.bodyColors.clear();
+	//m_colorScheme.slime.bodyColors.push_back(Color(249, 83, 27));
+	//m_colorScheme.slime.bodyColors.push_back(Color(196, 89, 27));
+	//m_colorScheme.slime.bodyColors.push_back(Color(242, 181, 26));
+	//m_colorScheme.slime.bodyColors.push_back(Color(138, 160, 64));
+	//m_colorScheme.slime.bodyColors.push_back(Color(95, 244, 202));
+	//m_colorScheme.slime.bodyColors.push_back(Color(19, 151, 221));
+	//m_colorScheme.slime.bodyColors.push_back(Color(145, 43, 102));
+	//m_colorScheme.slime.bodyColors.push_back(Color(206, 192, 163));
+	//m_colorScheme.slime.bodyColors.push_back(Color(76, 71, 56));
+
+	// TODO: Christmas color theme:
 	m_colorScheme.ballColor							= Color(138, 160, 64);
 	m_colorScheme.groundColor						= Color(183, 130, 66);
 	m_colorScheme.netColor							= Color(242, 181, 26);
@@ -83,8 +108,6 @@ ClientApp::ClientApp(RakNet::RakPeerInterface* peerInterface) :
 	m_colorScheme.slime.bodyColors.push_back(Color(145, 43, 102));
 	m_colorScheme.slime.bodyColors.push_back(Color(206, 192, 163));
 	m_colorScheme.slime.bodyColors.push_back(Color(76, 71, 56));
-
-	// TODO: Christmas color theme:
 }
 
 ClientApp::~ClientApp()
@@ -128,6 +151,12 @@ void ClientApp::ReadConnectionAcceptedPacket(RakNet::Packet* packet)
 	}
 
 	printf("Connection Request Accepted. We are player ID %d.\n", m_player->GetPlayerId());
+}
+
+float ClientApp::GetTimeStamp()
+{
+	// TODO: fix this.
+	return Time::GetTime();
 }
 
 void ClientApp::OnInitialize()
@@ -376,7 +405,18 @@ void ClientApp::ReceivePacketUpdateTick(BitStream& inStream)
 {
 	Vector2f ballPos;
 	Vector2f ballVel;
+	bool isLastTimeStampDirty;
+	float lastMoveTimeStamp;
 
+	// Read last move time stamp.
+	inStream.Read(isLastTimeStampDirty);
+	if (isLastTimeStampDirty)
+	{
+		inStream.Read(lastMoveTimeStamp);
+		printf("lastMoveTimeStamp = %f (RTT = %f ms)\n",
+			lastMoveTimeStamp, (m_inputManager.GetTimeStamp() - lastMoveTimeStamp + 0.016667f) * 1000);
+	}
+	
 	// Read ball information.
 	inStream.Read(ballPos);
 	inStream.Read(ballVel);

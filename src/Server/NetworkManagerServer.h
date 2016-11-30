@@ -42,6 +42,8 @@ public:
 	void ReceivePacket(RakNet::Packet* packet);
 	void ReceiveInputPacket(ClientProxy* client, RakNet::BitStream& inputPacket);
 	
+	void NetworkManagerServer::WriteLastMoveTimestampIfDirty(RakNet::BitStream& outStream, ClientProxy* client);
+
 	ClientProxy* GetClientProxy(int playerId);
 
 	PlayerIDToClientProxyMap::iterator clients_begin();

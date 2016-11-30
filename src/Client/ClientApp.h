@@ -31,6 +31,8 @@ public:
 
 	void ReadConnectionAcceptedPacket(RakNet::Packet* packet);
 
+	float GetTimeStamp();
+
 protected:
 	void OnInitialize();
 	void OnUpdate(float timeDelta);

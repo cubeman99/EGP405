@@ -145,6 +145,18 @@ void NetworkManagerServer::ReceiveInputPacket(ClientProxy* client, RakNet::BitSt
 	}
 }
 
+void NetworkManagerServer::WriteLastMoveTimestampIfDirty(BitStream& outStream, ClientProxy* client)
+{
+	bool isTimestampDirty = client->IsLastMoveTimestampDirty();
+	outStream.Write(isTimestampDirty);
+
+	if (isTimestampDirty)
+	{
+		outStream.Write(client->GetUnprocessedMoveList().GetLastMoveTimeStamp());
+		client->SetIsLastMoveTimestampDirty(false);
+	}
+}
+
 ClientProxy* NetworkManagerServer::GetClientProxy(int playerId)
 {
 	auto it = m_playerIdToClientProxyMap.find(playerId);

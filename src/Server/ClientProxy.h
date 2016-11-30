@@ -22,6 +22,8 @@ public:
 	inline void SetIsLastMoveTimestampDirty(bool isLastMoveTimestampDirty)
 		{ m_isLastMoveTimestampDirty = isLastMoveTimestampDirty; }
 
+	inline bool IsLastMoveTimestampDirty() const { return m_isLastMoveTimestampDirty; }
+
 private:
 	RakNet::SystemAddress m_socketAddress;
 	int			m_playerId;
