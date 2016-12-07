@@ -57,7 +57,7 @@ int Server::Initialize()
 
 int Server::Run()
 {
-	float m_tickRate = 20.0f;
+	float m_tickRate = 60.0f;
 
 	float m_currentTickRate = m_tickRate;
 	float m_frameTime = 1.0f / m_tickRate;
