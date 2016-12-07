@@ -153,6 +153,7 @@ void NetworkManagerServer::WriteLastMoveTimestampIfDirty(BitStream& outStream, C
 	if (isTimestampDirty)
 	{
 		outStream.Write(client->GetUnprocessedMoveList().GetLastMoveTimeStamp());
+		outStream.Write(client->GetUnprocessedMoveList().GetLastMoveNumber());
 		client->SetIsLastMoveTimestampDirty(false);
 	}
 }

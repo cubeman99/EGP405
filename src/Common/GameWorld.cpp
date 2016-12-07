@@ -78,7 +78,7 @@ void GameWorld::SimulatePlayerMovement(Slime* player, float deltaTime)
 	velocity.y += m_config.slime.gravity * deltaTime;
 
 	// Collide with floor and walls.
-	if (position.y >= m_config.view.floorY)
+	if (position.y + velocity.y * deltaTime >= m_config.view.floorY)
 	{
 		position.y = m_config.view.floorY;
 		if (velocity.y > 0.0f)

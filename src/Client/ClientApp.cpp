@@ -156,7 +156,7 @@ void ClientApp::ReadConnectionAcceptedPacket(RakNet::Packet* packet)
 float ClientApp::GetTimeStamp()
 {
 	// TODO: fix this.
-	return Time::GetTime();
+	return (float) Time::GetTime();
 }
 
 void ClientApp::OnInitialize()
@@ -286,7 +286,7 @@ void ClientApp::OnUpdate(float timeDelta)
 			m_inputManager.Update(timeDelta);
 
 			// Send occasional input packets.
-			if (m_inputManager.GetMoveList().GetMoveCount() >= 1)
+			if (m_inputManager.GetMoveList().GetMoveCount() >= 5)
 				m_networkManager.SendInputPacket();
 		}
 		else if (m_gameWorld.GetState() == GameWorld::STATE_WAITING_FOR_SERVE)
@@ -407,14 +407,18 @@ void ClientApp::ReceivePacketUpdateTick(BitStream& inStream)
 	Vector2f ballVel;
 	bool isLastTimeStampDirty;
 	float lastMoveTimeStamp;
+	int lastMoveNumber;
 
 	// Read last move time stamp.
 	inStream.Read(isLastTimeStampDirty);
 	if (isLastTimeStampDirty)
 	{
 		inStream.Read(lastMoveTimeStamp);
-		printf("lastMoveTimeStamp = %f (RTT = %f ms)\n",
-			lastMoveTimeStamp, (m_inputManager.GetTimeStamp() - lastMoveTimeStamp + 0.016667f) * 1000);
+		inStream.Read(lastMoveNumber);
+		m_rtt = (m_inputManager.GetTimeStamp() - lastMoveTimeStamp + 0.016667f);
+		m_lastMoveNumber = lastMoveNumber;
+		//printf("lastMoveTimeStamp = %f (RTT = %f ms), move number = %d\n",
+			//lastMoveTimeStamp, (m_inputManager.GetTimeStamp() - lastMoveTimeStamp + 0.016667f) * 1000, lastMoveNumber);
 	}
 	
 	// Read ball information.
@@ -571,6 +575,16 @@ void ClientApp::OnRender()
 		g.DrawString(m_fontScore, strStream.str(),
 			config.view.width * 0.5f, config.view.height * 0.1f,
 			m_colorScheme.ui.scoreTextColor, Align::TOP_CENTER);
+		
+		strStream.str("");
+		strStream << "RTT: " << m_rtt * 1000 << " ms (" << m_rtt * 60.0f << " frames)";
+		g.DrawString(m_fontSmall, strStream.str(),
+			16, 16, m_colorScheme.ui.scoreTextColor, Align::TOP_LEFT);
+
+		strStream.str("");
+		strStream << "MV#: " << m_lastMoveNumber;
+		g.DrawString(m_fontSmall, strStream.str(),
+			16, 48, m_colorScheme.ui.scoreTextColor, Align::TOP_LEFT);
 
 		// Count the number of players per team.
 		int playerCounts[2] = { 0, 0 };

@@ -10,7 +10,7 @@ class MoveList
 public:
 	MoveList();
 
-	const Move& AddMove(const InputState& inputState, float timeStamp);
+	const Move& AddMove(const InputState& inputState, int moveNumber, float timeStamp);
 	const Move& AddMove(const Move& move);
 	bool AddMoveIfNew(const Move& move);
 	void Clear();
@@ -22,10 +22,12 @@ public:
 	inline const Move& operator[](int index) const { return m_moves[index]; }
 
 	inline float GetLastMoveTimeStamp() const { return m_lastMoveTimeStamp; }
+	inline int GetLastMoveNumber() const { return m_lastMoveNumber; }
 
 private:
 	std::vector<Move> m_moves;
 	float m_lastMoveTimeStamp;
+	int m_lastMoveNumber;
 };
 
 

@@ -10,6 +10,7 @@ void InputManager::Initialize(Keyboard* keyboard)
 {
 	m_keyboard = keyboard;
 	m_timeStamp = 0.0f;
+	m_moveNumberCounter = 0;
 }
 
 void InputManager::Update(float timeDelta)
@@ -27,7 +28,10 @@ void InputManager::Update(float timeDelta)
 		m_inputState.m_isJumping = true;
 
 	// Add one move per tick.
-	m_moveList.AddMove(Move(m_inputState, m_timeStamp, timeDelta));
+	Move move(m_inputState, m_moveNumberCounter, m_timeStamp, timeDelta);
+	m_moveList.AddMove(move);
+	m_unreconciledMoves.AddMove(move);
+	m_moveNumberCounter++;
 
 	m_inputState.Reset();
 }

@@ -81,6 +81,9 @@ private:
 	RakNet::RakPeerInterface*	m_peerInterface;
 	InputManager				m_inputManager;
 	NetworkManagerClient		m_networkManager;
+
+	float m_rtt;
+	int m_lastMoveNumber;
 };
 
 
