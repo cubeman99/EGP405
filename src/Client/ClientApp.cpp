@@ -85,29 +85,29 @@ ClientApp::ClientApp(RakNet::RakPeerInterface* peerInterface) :
 	//m_colorScheme.slime.bodyColors.push_back(Color(206, 192, 163));
 	//m_colorScheme.slime.bodyColors.push_back(Color(76, 71, 56));
 
-	// TODO: Christmas color theme:
-	m_colorScheme.ballColor							= Color(138, 160, 64);
-	m_colorScheme.groundColor						= Color(183, 130, 66);
-	m_colorScheme.netColor							= Color(242, 181, 26);
-	m_colorScheme.skyColor							= Color(204, 192, 177);
+	// Christmas color theme:
+	m_colorScheme.ballColor							= Color::RED;
+	m_colorScheme.groundColor						= Color::WHITE;
+	m_colorScheme.netColor							= Color(21, 119, 2);
+	m_colorScheme.skyColor							= Color(96, 202, 255);
 	m_colorScheme.slime.eyeColor					= Color::WHITE;
 	m_colorScheme.slime.pupilColor					= Color::BLACK;
 	m_colorScheme.ui.chooseColorButton.outlineColor	= Color::BLACK;
-	m_colorScheme.ui.joinTeamButton.backgroundColor	= Color(196, 89, 27);
-	m_colorScheme.ui.joinTeamButton.textColor		= m_colorScheme.skyColor;
-	m_colorScheme.ui.gameInfoTextColor				= Color::BLACK;
-	m_colorScheme.ui.menuPromptTextColor			= Color::BLACK;
-	m_colorScheme.ui.scoreTextColor					= Color::BLACK;
+	m_colorScheme.ui.joinTeamButton.backgroundColor	= Color(21, 119, 2);
+	m_colorScheme.ui.joinTeamButton.textColor		= Color::WHITE;
+	m_colorScheme.ui.gameInfoTextColor				= Color::RED;
+	m_colorScheme.ui.menuPromptTextColor			= Color::RED;
+	m_colorScheme.ui.scoreTextColor					= Color(21, 119, 2);
 	m_colorScheme.slime.bodyColors.clear();
-	m_colorScheme.slime.bodyColors.push_back(Color(249, 83, 27));
-	m_colorScheme.slime.bodyColors.push_back(Color(196, 89, 27));
-	m_colorScheme.slime.bodyColors.push_back(Color(242, 181, 26));
-	m_colorScheme.slime.bodyColors.push_back(Color(138, 160, 64));
-	m_colorScheme.slime.bodyColors.push_back(Color(95, 244, 202));
-	m_colorScheme.slime.bodyColors.push_back(Color(19, 151, 221));
-	m_colorScheme.slime.bodyColors.push_back(Color(145, 43, 102));
-	m_colorScheme.slime.bodyColors.push_back(Color(206, 192, 163));
-	m_colorScheme.slime.bodyColors.push_back(Color(76, 71, 56));
+	m_colorScheme.slime.bodyColors.push_back(Color::RED);
+	m_colorScheme.slime.bodyColors.push_back(Color(255, 141, 2)); // orange
+	m_colorScheme.slime.bodyColors.push_back(Color(255, 230, 45)); // gold
+	m_colorScheme.slime.bodyColors.push_back(Color(103, 247, 42)); // lime  green
+	m_colorScheme.slime.bodyColors.push_back(Color(12, 160, 1)); // dark green
+	m_colorScheme.slime.bodyColors.push_back(Color(30, 92, 237)); // blue
+	m_colorScheme.slime.bodyColors.push_back(Color(168, 1, 193)); // purple
+	m_colorScheme.slime.bodyColors.push_back(Color(249, 251, 252)); // white
+	m_colorScheme.slime.bodyColors.push_back(Color::BLACK);
 }
 
 ClientApp::~ClientApp()
