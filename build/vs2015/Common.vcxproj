@@ -17,6 +17,7 @@
     <ClCompile Include="..\..\src\Common\InputState.cpp" />
     <ClCompile Include="..\..\src\Common\Move.cpp" />
     <ClCompile Include="..\..\src\Common\MoveList.cpp" />
+    <ClCompile Include="..\..\src\Common\PlayerState.cpp" />
     <ClCompile Include="..\..\src\Common\Sime.cpp" />
     <ClCompile Include="..\..\src\Common\Team.cpp" />
   </ItemGroup>
@@ -28,6 +29,7 @@
     <ClInclude Include="..\..\src\Common\Messages.h" />
     <ClInclude Include="..\..\src\Common\Move.h" />
     <ClInclude Include="..\..\src\Common\MoveList.h" />
+    <ClInclude Include="..\..\src\Common\PlayerState.h" />
     <ClInclude Include="..\..\src\Common\Slime.h" />
     <ClInclude Include="..\..\src\Common\Team.h" />
   </ItemGroup>

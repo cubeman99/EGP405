@@ -21,6 +21,7 @@
 #include "Slime.h"
 #include "Team.h"
 #include "GameWorld.h"
+#include "PlayerProxy.h"
 
 
 class ClientApp : public Application
@@ -49,6 +50,7 @@ private:
 	void ReceivePacketUpdateTick(RakNet::BitStream& inStream);
 
 	void DrawSlime(Graphics& g, const Slime& slime, const Vector2f& lookAtPoint);
+	void DrawDebugSlime(Graphics& g, const Slime& slime, const Color& color);
 
 	enum
 	{
@@ -84,6 +86,16 @@ private:
 
 	float m_rtt;
 	int m_lastMoveNumber;
+
+	int m_numMovesPerInputPacket;
+	bool m_enableClientSidePrediction;
+	bool m_enableServerReconciliation;
+	bool m_enableStateInterpolation;
+
+public:
+	Vector2f m_serverPlayerPos;
+	Vector2f m_serverPlayerReconcilePos;
+	Slime m_debugPredictionPlayer;
 };
 
 

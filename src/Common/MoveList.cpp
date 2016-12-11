@@ -10,6 +10,7 @@ const Move& MoveList::AddMove(const InputState& inputState, int moveNumber, floa
 	float deltaTime = (m_lastMoveTimeStamp >= 0.0f ? timeStamp - m_lastMoveTimeStamp : 0.0f);
 	m_moves.push_back(Move(inputState, moveNumber, timeStamp, deltaTime));
 	m_lastMoveTimeStamp = timeStamp;
+	m_lastMoveNumber = moveNumber;
 	return m_moves.back();
 }
 
@@ -17,7 +18,14 @@ const Move& MoveList::AddMove(const Move& move)
 {
 	m_moves.push_back(move);
 	m_lastMoveTimeStamp = move.GetTimeStamp();
+	m_lastMoveNumber = move.GetMoveNumber();
 	return m_moves.back();
+}
+
+void MoveList::AddMoves(const MoveList& moveList)
+{
+	for (unsigned int i = 0; i < moveList.m_moves.size(); i++)
+		AddMove(moveList[i]);
 }
 
 bool MoveList::AddMoveIfNew(const Move& move)
@@ -40,3 +48,11 @@ void MoveList::Clear()
 {
 	m_moves.clear();
 }
+
+Move MoveList::RemoveMove(int index)
+{
+	Move move = m_moves[index];
+	m_moves.erase(m_moves.begin() + index);
+	return move;
+}
+

@@ -19,11 +19,13 @@ public:
 	inline const RakNet::SystemAddress& GetSocketAddress() const { return m_socketAddress; }
 	inline int GetPlayerId() const { return m_playerId; }
 	inline int GetLastMoveNumber() const { return m_lastMoveNumber; }
+	inline float GetLastMoveTimeStamp() const { return m_lastMoveTimeStamp; }
+	inline bool IsLastMoveTimestampDirty() const { return m_isLastMoveTimestampDirty; }
 
+	inline void SetLastMoveTimeStamp(float lastMoveTimeStamp) { m_lastMoveTimeStamp = lastMoveTimeStamp; }
 	inline void SetIsLastMoveTimestampDirty(bool isLastMoveTimestampDirty)
 		{ m_isLastMoveTimestampDirty = isLastMoveTimestampDirty; }
 
-	inline bool IsLastMoveTimestampDirty() const { return m_isLastMoveTimestampDirty; }
 
 private:
 	RakNet::SystemAddress m_socketAddress;
@@ -31,6 +33,7 @@ private:
 	MoveList	m_unprocessedMoveList;
 	int			m_lastMoveNumber;
 	bool		m_isLastMoveTimestampDirty;
+	float		m_lastMoveTimeStamp;
 };
 
 

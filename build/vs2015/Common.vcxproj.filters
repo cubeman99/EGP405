@@ -42,6 +42,9 @@
     <ClCompile Include="..\..\src\Common\GameWorld.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\Common\PlayerState.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\Common\Config.h">
@@ -69,6 +72,9 @@
       <Filter>Source Files\input</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Common\GameWorld.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Common\PlayerState.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

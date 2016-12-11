@@ -10,12 +10,17 @@ void InputManager::Initialize(Keyboard* keyboard)
 {
 	m_keyboard = keyboard;
 	m_timeStamp = 0.0f;
-	m_moveNumberCounter = 0;
+	m_moveNumberCounter = 1;
+}
+
+void InputManager::UpdateTimeStamp(float timeDelta)
+{
+	m_timeStamp += timeDelta;
 }
 
 void InputManager::Update(float timeDelta)
 {
-	m_timeStamp += timeDelta;
+	m_inputState.Reset();
 
 	// Left/Right: Move horizontally
 	if (m_keyboard->IsKeyDown(Keys::LEFT))
@@ -32,7 +37,5 @@ void InputManager::Update(float timeDelta)
 	m_moveList.AddMove(move);
 	m_unreconciledMoves.AddMove(move);
 	m_moveNumberCounter++;
-
-	m_inputState.Reset();
 }
 

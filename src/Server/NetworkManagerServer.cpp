@@ -140,6 +140,7 @@ void NetworkManagerServer::ReceiveInputPacket(ClientProxy* client, RakNet::BitSt
 		// Add the move if it is new.
 		if (client->GetUnprocessedMoveList().AddMoveIfNew(move))
 		{
+			client->SetLastMoveTimeStamp(move.GetTimeStamp());
 			client->SetIsLastMoveTimestampDirty(true);
 		}
 	}

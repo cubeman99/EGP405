@@ -2,6 +2,7 @@
 #include <GameLib/util/Timing.h>
 #include <GameLib/math/MathLib.h>
 #include <GameLib/math/Polygonf.h>
+#include "PlayerState.h"
 
 using namespace RakNet;
 
@@ -177,8 +178,16 @@ void Server::Tick(float timeDelta)
 
 			if (slime->HasJoinedGame())
 			{
+				ClientProxy* client2 = m_networkManager.GetClientProxy(slime->GetPlayerId());
+
 				bsOut.Write(slime->GetPlayerId());
-				slime->SerializeDynamics(bsOut, m_gameWorld.GetConfig());
+				//slime->SerializeDynamics(bsOut, m_gameWorld.GetConfig());
+				
+				PlayerState playerState;
+				playerState.SetTimeStamp(client2->GetLastMoveTimeStamp());
+				playerState.SetPosition(slime->GetPosition());
+				playerState.SetVelocity(slime->GetVelocity());
+				playerState.Serialize(bsOut, m_gameWorld.GetConfig());
 			}
 		}
 		bsOut.Write((int) -1);

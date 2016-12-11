@@ -12,8 +12,10 @@ public:
 
 	const Move& AddMove(const InputState& inputState, int moveNumber, float timeStamp);
 	const Move& AddMove(const Move& move);
+	void AddMoves(const MoveList& moveList);
 	bool AddMoveIfNew(const Move& move);
 	void Clear();
+	Move RemoveMove(int index);
 
 	inline bool HasMoves() const { return !m_moves.empty(); }
 	inline int GetMoveCount() const { return (int) m_moves.size(); }
