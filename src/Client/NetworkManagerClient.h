@@ -11,23 +11,6 @@
 #include "GameWorld.h"
 
 
-struct EntityState
-{
-	int entityId;
-	Vector2f position;
-	Vector2f velocity;
-};
-
-class Snapshot
-{
-public:
-
-private:
-	std::vector<EntityState> m_entityStates;
-};
-
-
-
 class NetworkManagerClient
 {
 public:

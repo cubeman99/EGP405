@@ -45,6 +45,9 @@
     <ClCompile Include="..\..\src\Common\PlayerState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\Common\WorldState.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\Common\Config.h">
@@ -75,6 +78,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Common\PlayerState.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Common\WorldState.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

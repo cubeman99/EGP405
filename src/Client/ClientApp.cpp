@@ -168,7 +168,8 @@ void ClientApp::OnInitialize()
 	m_numMovesPerInputPacket = 3;
 	m_enableClientSidePrediction = true;
 	m_enableServerReconciliation = true;
-	m_enableStateInterpolation = true;
+	m_enableEntityInterpolation = true;
+	m_enableLagCompensation = false;
 
 	// Load resources.
 	m_fontScore = Font::LoadFont("assets/AlteHaasGroteskBold.ttf", 24, 32, 128);
@@ -227,12 +228,14 @@ void ClientApp::OnUpdate(float timeDelta)
 		m_enableClientSidePrediction = !m_enableClientSidePrediction;
 	if (GetKeyboard()->IsKeyPressed(Keys::R))
 		m_enableServerReconciliation = !m_enableServerReconciliation;
-	if (GetKeyboard()->IsKeyPressed(Keys::S))
+	if (GetKeyboard()->IsKeyPressed(Keys::E))
 	{
-		m_enableStateInterpolation = !m_enableStateInterpolation;
+		m_enableEntityInterpolation = !m_enableEntityInterpolation;
 
-		if (!m_enableStateInterpolation)
+		if (!m_enableEntityInterpolation)
 		{
+			m_entityInterpolator.ClearSnapshots();
+
 			for (auto it = m_gameWorld.players_begin();
 				it != m_gameWorld.players_end(); it++)
 			{
@@ -332,7 +335,7 @@ void ClientApp::OnUpdate(float timeDelta)
 	}
 
 	// Update state interpolation (for player proxies).
-	if (m_enableStateInterpolation)
+	if (m_enableEntityInterpolation)
 	{
 		for (auto it = m_gameWorld.players_begin();
 			it != m_gameWorld.players_end(); it++)
@@ -527,7 +530,7 @@ void ClientApp::ReceivePacketUpdateTick(BitStream& inStream)
 			}
 			else
 			{
-				if (m_enableStateInterpolation)
+				if (m_enableEntityInterpolation)
 				{
 					// Queue the player state for interpolation.
 					PlayerProxy* proxy = m_networkManager.GetPlayerProxy(playerId);
@@ -719,22 +722,28 @@ void ClientApp::OnRender()
 		g.DrawString(m_fontSmall, strStream.str(),
 			16, 48, m_colorScheme.ui.scoreTextColor, Align::TOP_LEFT);
 
+		Rect2f r(config.view.width - 16 - 180, 48, 180, 80);
+		r.Inflate(8, 8);
+		g.FillRect(r, Color::BLACK);
 		g.DrawString(m_fontSmall,
 			m_enableClientSidePrediction ? "Prediction: ON" : "Prediction: OFF",
 			config.view.width - 16, 48,
 			m_enableClientSidePrediction ? Color::GREEN : Color::RED,
 			Align::TOP_RIGHT);
-
 		g.DrawString(m_fontSmall,
 			m_enableServerReconciliation ? "Reconciliation: ON" : "Reconciliation: OFF",
 			config.view.width - 16, 64,
 			m_enableServerReconciliation ? Color::GREEN : Color::RED,
 			Align::TOP_RIGHT);
-		
 		g.DrawString(m_fontSmall,
-			m_enableStateInterpolation ? "State Lerp: ON" : "State Lerp: OFF",
+			m_enableEntityInterpolation ? "Entity Interpolation: ON" : "Entity Interpolation: OFF",
 			config.view.width - 16, 80,
-			m_enableStateInterpolation ? Color::GREEN : Color::RED,
+			m_enableEntityInterpolation ? Color::GREEN : Color::RED,
+			Align::TOP_RIGHT);
+		g.DrawString(m_fontSmall,
+			m_enableLagCompensation ? "Lag Comp: ON" : "Lag Comp: OFF",
+			config.view.width - 16, 96,
+			m_enableLagCompensation ? Color::GREEN : Color::RED,
 			Align::TOP_RIGHT);
 
 		// Count the number of players per team.

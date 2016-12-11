@@ -271,3 +271,34 @@ void GameWorld::PositionPlayersForServe()
 		it->second->SetVelocity(Vector2f::ZERO);
 	}
 }
+
+void GameWorld::ExtractWorldState(WorldState* worldState)
+{
+	EntityState entityState;
+
+	// Position the players in the middle of their areas.
+	for (PlayerMap::iterator it = m_players.begin(); it != m_players.end(); it++)
+	{
+		entityState.SetEntityId(it->first);
+		entityState.SetPosition(it->second->GetPosition());
+		entityState.SetVelocity(it->second->GetVelocity());
+		worldState->SetEntityState(entityState);
+	}
+}
+
+void GameWorld::ApplyState(WorldState* state)
+{
+	// Apply the states for each entity.
+	for (auto it = state->entity_states_begin();
+		it != state->entity_states_end(); it++)
+	{
+		Slime* player = GetPlayer(it->second.GetEntityId());
+		
+		if (player != nullptr)
+		{
+			player->SetPosition(it->second.GetPosition());
+			player->SetPosition(it->second.GetVelocity());
+		}
+	}
+}
+

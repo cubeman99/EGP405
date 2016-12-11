@@ -30,6 +30,9 @@
     <ClCompile Include="..\..\src\Client\PlayerProxy.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\Client\EntityInterpolator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\Client\ClientApp.h">
@@ -42,6 +45,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Client\PlayerProxy.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Client\EntityInterpolator.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

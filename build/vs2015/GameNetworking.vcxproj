@@ -81,6 +81,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\Client\ClientApp.cpp" />
+    <ClCompile Include="..\..\src\Client\EntityInterpolator.cpp" />
     <ClCompile Include="..\..\src\Client\InputManager.cpp" />
     <ClCompile Include="..\..\src\Client\main.cpp" />
     <ClCompile Include="..\..\src\Client\NetworkManagerClient.cpp" />
@@ -88,6 +89,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\Client\ClientApp.h" />
+    <ClInclude Include="..\..\src\Client\EntityInterpolator.h" />
     <ClInclude Include="..\..\src\Client\InputManager.h" />
     <ClInclude Include="..\..\src\Client\NetworkManagerClient.h" />
     <ClInclude Include="..\..\src\Client\PlayerProxy.h" />

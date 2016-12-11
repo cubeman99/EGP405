@@ -9,7 +9,7 @@
 #include "Slime.h"
 #include "Team.h"
 #include "InputState.h"
-
+#include "WorldState.h"
 
 typedef int PlayerID;
 
@@ -53,6 +53,9 @@ public:
 	void PositionBallAboveNet();
 	void PositionBallForServe(int servingTeamIndex);
 	void PositionPlayersForServe();
+
+	void ExtractWorldState(WorldState* state);
+	void ApplyState(WorldState* state);
 
 private:
 	PlayerMap	m_players;
