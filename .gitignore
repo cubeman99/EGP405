@@ -1,25 +1,17 @@
 
-build/*.sdf
-build/*.db
-build/*.opendb
-build/*.suo
-build/*.user
+build/vs2015/*.sdf
+build/vs2015/*.db
+build/vs2015/*.opendb
+build/vs2015/*.suo
+build/vs2015/*.user
 
-build/Client/*.sdf
-build/Client/*.db
-build/Client/*.opendb
-build/Client/*.suo
-build/Client/*.user
-
-build/Client/.vs/
-build/Client/Client/
-build/Client/Server/
-build/Client/Common/
-build/Client/GameLib/
-
-build/.vs/
-build/[Dd]ebug
-build/[Rr]elease
+build/vs2015/.vs/
+build/vs2015/Client/
+build/vs2015/Common/
+build/vs2015/GameLib/
+build/vs2015/Server/
+build/vs2015/Debug/
+build/vs2015/Release/
 
 Release/
 distribution/
