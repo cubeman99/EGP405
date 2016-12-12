@@ -85,14 +85,12 @@
     <ClCompile Include="..\..\src\Client\InputManager.cpp" />
     <ClCompile Include="..\..\src\Client\main.cpp" />
     <ClCompile Include="..\..\src\Client\NetworkManagerClient.cpp" />
-    <ClCompile Include="..\..\src\Client\PlayerProxy.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\Client\ClientApp.h" />
     <ClInclude Include="..\..\src\Client\EntityInterpolator.h" />
     <ClInclude Include="..\..\src\Client\InputManager.h" />
     <ClInclude Include="..\..\src\Client\NetworkManagerClient.h" />
-    <ClInclude Include="..\..\src\Client\PlayerProxy.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="Common.vcxproj">

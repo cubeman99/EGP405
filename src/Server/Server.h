@@ -47,6 +47,8 @@ private:
 	GameWorld m_gameWorld;
 	float m_serveDelayTimer;
 	int m_servingTeamIndex;
+
+	float m_timeStamp;
 };
 
 

@@ -21,7 +21,6 @@
 #include "Slime.h"
 #include "Team.h"
 #include "GameWorld.h"
-#include "PlayerProxy.h"
 #include "EntityInterpolator.h"
 
 
@@ -92,14 +91,8 @@ private:
 	bool m_enableClientSidePrediction;
 	bool m_enableServerReconciliation;
 	bool m_enableEntityInterpolation;
-	bool m_enableLagCompensation;
 
 	EntityInterpolator m_entityInterpolator;
-
-public:
-	Vector2f m_serverPlayerPos;
-	Vector2f m_serverPlayerReconcilePos;
-	Slime m_debugPredictionPlayer;
 };
 
 

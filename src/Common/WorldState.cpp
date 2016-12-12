@@ -5,6 +5,7 @@
 void EntityState::Serialize(RakNet::BitStream& outStream) const
 {
 	outStream.Write(m_entityId);
+	outStream.Write(m_timeStamp);
 	outStream.Write(m_position);
 	outStream.Write(m_velocity);
 }
@@ -12,6 +13,7 @@ void EntityState::Serialize(RakNet::BitStream& outStream) const
 void EntityState::Deserialize(RakNet::BitStream& inStream)
 {
 	inStream.Read(m_entityId);
+	inStream.Read(m_timeStamp);
 	inStream.Read(m_position);
 	inStream.Read(m_velocity);
 }
@@ -38,6 +40,11 @@ EntityState* WorldState::GetEntityState(int entityId)
 void WorldState::SetEntityState(const EntityState& entityState)
 {
 	m_entityStates[entityState.GetEntityId()] = entityState;
+}
+
+void WorldState::RemoveEntityState(int entityId)
+{
+	m_entityStates.erase(entityId);
 }
 
 void WorldState::Clear()
@@ -93,11 +100,20 @@ void WorldState::Set(WorldState* other)
 
 void WorldState::Serialize(RakNet::BitStream& outStream) const
 {
+	outStream.Write(m_timeStamp);
 	outStream.Write((int) m_entityStates.size());
+
+	for (auto it = m_entityStates.begin();
+		it != m_entityStates.end(); it++)
+	{
+		it->second.Serialize(outStream);
+	}
 }
 
 void WorldState::Deserialize(RakNet::BitStream& inStream)
 {
+	inStream.Read(m_timeStamp);
+
 	int numEntityStates;
 	inStream.Read(numEntityStates);
 

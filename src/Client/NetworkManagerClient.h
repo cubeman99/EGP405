@@ -7,7 +7,6 @@
 #include <RakNet/MessageIdentifiers.h>
 
 #include "InputManager.h"
-#include "PlayerProxy.h"
 #include "GameWorld.h"
 
 
@@ -27,12 +26,6 @@ public:
 
 	void CloseConnection();
 
-	void AddPlayerProxy(PlayerID playerId);
-	void RemovePlayerProxy(PlayerID playerId);
-	PlayerProxy* GetPlayerProxy(PlayerID playerId);
-
-	void UpdatePlayerProxies(float timeDelta);
-
 private:
 	RakNet::RakPeerInterface* m_peerInterface;
 	RakNet::SystemAddress m_serverAddress;
@@ -40,8 +33,6 @@ private:
 	InputManager* m_inputManager;
 
 	float m_avgRoundTripTime;
-
-	std::map<PlayerID, PlayerProxy*> m_playerIdToPlayerProxyMap;
 };
 
 

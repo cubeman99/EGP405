@@ -17,6 +17,14 @@ public:
 	{
 	}
 
+	EntityState(float timeStamp, int entityId, const Vector2f& position, const Vector2f& velocity) :
+		m_timeStamp(timeStamp),
+		m_entityId(entityId),
+		m_position(position),
+		m_velocity(velocity)
+	{
+	}
+
 	EntityState(int entityId, const Vector2f& position, const Vector2f& velocity) :
 		m_entityId(entityId),
 		m_position(position),
@@ -25,10 +33,12 @@ public:
 	}
 
 	inline int GetEntityId() const { return m_entityId; }
+	inline float GetTimeStamp() const { return m_timeStamp; }
 	inline const Vector2f& GetPosition() const { return m_position; }
 	inline const Vector2f& GetVelocity() const { return m_velocity; }
 
 	inline void SetEntityId(int entityId) { m_entityId = entityId; }
+	inline void SetTimeStamp(float timeStamp) { m_timeStamp = timeStamp; }
 	inline void SetPosition(const Vector2f& position) { m_position = position; }
 	inline void SetVelocity(const Vector2f& velocity) { m_velocity = velocity; }
 
@@ -37,6 +47,7 @@ public:
 
 private:
 	int m_entityId;
+	float m_timeStamp;
 	Vector2f m_position;
 	Vector2f m_velocity;
 };
@@ -65,6 +76,7 @@ public:
 
 	EntityState* GetEntityState(int entityId);
 	void SetEntityState(const EntityState& entityState);
+	void RemoveEntityState(int entityId);
 
 	void Serialize(RakNet::BitStream& outStream) const;
 	void Deserialize(RakNet::BitStream& inStream);

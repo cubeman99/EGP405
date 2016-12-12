@@ -149,7 +149,6 @@ void ClientApp::ReadConnectionAcceptedPacket(RakNet::Packet* packet)
 		Slime* slime = m_gameWorld.CreatePlayer(playerId);
 		slime->SetTeamIndex(teamIndex);
 		slime->SetColorIndex(colorIndex);
-		m_networkManager.AddPlayerProxy(playerId);
 	}
 
 	printf("Connection Request Accepted. We are player ID %d.\n", m_player->GetPlayerId());
@@ -169,7 +168,6 @@ void ClientApp::OnInitialize()
 	m_enableClientSidePrediction = true;
 	m_enableServerReconciliation = true;
 	m_enableEntityInterpolation = true;
-	m_enableLagCompensation = false;
 
 	// Load resources.
 	m_fontScore = Font::LoadFont("assets/AlteHaasGroteskBold.ttf", 24, 32, 128);
@@ -231,19 +229,8 @@ void ClientApp::OnUpdate(float timeDelta)
 	if (GetKeyboard()->IsKeyPressed(Keys::E))
 	{
 		m_enableEntityInterpolation = !m_enableEntityInterpolation;
-
 		if (!m_enableEntityInterpolation)
-		{
 			m_entityInterpolator.ClearSnapshots();
-
-			for (auto it = m_gameWorld.players_begin();
-				it != m_gameWorld.players_end(); it++)
-			{
-				PlayerProxy* proxy = m_networkManager.GetPlayerProxy(it->second->GetPlayerId());
-				if (proxy != nullptr)
-					proxy->ClearInterpolation();
-			}
-		}
 	}
 
 	Vector2f mousePos((float) GetMouse()->GetX(), (float) GetMouse()->GetY());
@@ -309,45 +296,25 @@ void ClientApp::OnUpdate(float timeDelta)
 	}
 	else
 	{
-		// Update Game play:
+		// Update input.
+		m_inputManager.Update(timeDelta);
 
-		if (m_gameWorld.GetState() == GameWorld::STATE_GAMEPLAY ||
-			m_gameWorld.GetState() == GameWorld::STATE_WAITING_FOR_PLAYERS)
+		// Send occasional input packets.
+		if (m_inputManager.GetMoveList().GetMoveCount() >= m_numMovesPerInputPacket)
+			m_networkManager.SendInputPacket();
+
+		// Simulate/predict player movement.
+		if (m_enableClientSidePrediction)
 		{
-			// Update input.
-			m_inputManager.Update(timeDelta);
-
-			// Send occasional input packets.
-			if (m_inputManager.GetMoveList().GetMoveCount() >= m_numMovesPerInputPacket)
-				m_networkManager.SendInputPacket();
-
-			// Simulate/predict player movement.
-			if (m_enableClientSidePrediction)
-			{
-				m_gameWorld.ProcessPlayerInput(m_player, m_inputManager.GetInputState(), timeDelta);
-				m_gameWorld.SimulatePlayerMovement(m_player, timeDelta);
-			}
-		}
-		else if (m_gameWorld.GetState() == GameWorld::STATE_WAITING_FOR_SERVE)
-		{
-			// can't move while waiting for serve.
+			m_gameWorld.ProcessPlayerInput(m_player, m_inputManager.GetInputState(), timeDelta);
+			m_gameWorld.SimulatePlayerMovement(m_player, timeDelta);
 		}
 	}
 
 	// Update state interpolation (for player proxies).
 	if (m_enableEntityInterpolation)
 	{
-		for (auto it = m_gameWorld.players_begin();
-			it != m_gameWorld.players_end(); it++)
-		{
-			PlayerProxy* proxy = m_networkManager.GetPlayerProxy(it->second->GetPlayerId());
-			if (proxy != nullptr)
-			{
-				proxy->UpdateInterpolation(timeDelta);
-				it->second->SetPosition(proxy->GetPlayerState().GetPosition());
-				it->second->SetVelocity(proxy->GetPlayerState().GetVelocity());
-			}
-		}
+		m_entityInterpolator.Update(timeDelta, &m_gameWorld);
 	}
 }
 
@@ -412,8 +379,6 @@ void ClientApp::ReceivePacketPlayerJoined(BitStream& inStream)
 		player->SetColorIndex(colorIndex);
 		player->SetJoinedGame(true);
 		printf("Player ID %d joined team %d!\n", playerId, teamIndex);
-
-		m_networkManager.AddPlayerProxy(playerId);
 	}
 }
 
@@ -433,8 +398,6 @@ void ClientApp::ReceivePacketPlayerLeft(BitStream& inStream)
 		printf("Player ID %d left the game.\n", playerId);
 		m_gameWorld.RemovePlayer(playerId);
 	}
-
-	m_networkManager.RemovePlayerProxy(playerId);
 }
 
 void ClientApp::ReceivePacketTeamScored(BitStream& inStream)
@@ -501,11 +464,32 @@ void ClientApp::ReceivePacketUpdateTick(BitStream& inStream)
 	m_gameWorld.GetBall().SetPosition(ballPos);
 	m_gameWorld.GetBall().SetVelocity(ballVel);
 
-	// Read player states.
-	Slime dummy;
-	int playerId;
-	Slime playerDummy = *m_player;
+	/*Vector2f playerPos = m_player->GetPosition();
+	Vector2f playerVel = m_player->GetVelocity();
 
+	// Read world state.
+	WorldState worldState;
+	worldState.Deserialize(inStream);
+
+	EntityState* newPlayerState = worldState.GetEntityState(m_player->GetPlayerId());
+	if (newPlayerState != nullptr && (reconcile ||
+		(!m_enableServerReconciliation && isLastTimeStampDirty)))
+	{
+		m_player->SetPosition(newPlayerState->GetPosition());
+		m_player->SetVelocity(newPlayerState->GetVelocity());
+	}
+	worldState.RemoveEntityState(m_player->GetPlayerId());
+
+	if (m_enableEntityInterpolation)
+		m_entityInterpolator.AddStateSnapshots(worldState);
+	else
+		m_gameWorld.ApplyState(&worldState);*/
+
+	// Read player states.
+	int playerId;
+	PlayerState playerState;
+	Slime* player;
+	
 	while (true)
 	{
 		inStream.Read(playerId);
@@ -513,45 +497,34 @@ void ClientApp::ReceivePacketUpdateTick(BitStream& inStream)
 			break;
 
 		// Deserialize the state.
-		PlayerState playerState;
 		playerState.Deserialize(inStream, m_gameWorld.GetConfig());
 
-		Slime* player = m_gameWorld.GetPlayer(playerId);
-
+		// Apply the state to the associated player.
+		player = m_gameWorld.GetPlayer(playerId);
 		if (player != NULL)
 		{
-			if (player == m_player)
-			{
-				if (reconcile || (!m_enableServerReconciliation && isLastTimeStampDirty))
-				{
-					m_player->SetPosition(playerState.GetPosition());
-					m_player->SetVelocity(playerState.GetVelocity());
-				}
-			}
-			else
+			if (player != m_player)
 			{
 				if (m_enableEntityInterpolation)
 				{
-					// Queue the player state for interpolation.
-					PlayerProxy* proxy = m_networkManager.GetPlayerProxy(playerId);
-					if (proxy != nullptr)
-					{
-						proxy->AddStateIfNew(playerState.GetTimeStamp(),
-							playerState.GetPosition(), playerState.GetVelocity());
-					}
+					m_entityInterpolator.AddStateSnapshot(playerId, playerState);
 				}
 				else
 				{
-					// Immediately update this player's state.
 					player->SetPosition(playerState.GetPosition());
 					player->SetVelocity(playerState.GetVelocity());
 				}
 			}
+			else if (reconcile || (!m_enableServerReconciliation && isLastTimeStampDirty))
+			{
+				m_player->SetPosition(playerState.GetPosition());
+				m_player->SetVelocity(playerState.GetVelocity());
+			}
 		}
 	}
 
-	// Reconcile some moves confirmed by the server.
-	if (reconcile && !m_enableServerReconciliation)
+	// New moves were reconciled by the server.
+	if (reconcile && m_enableServerReconciliation)
 	{
 		// Re-simulate all the unreconciled moves after the last move confirmed by the server.
 		// These are the moves that happened while waiting for the server's move response.
@@ -710,41 +683,23 @@ void ClientApp::OnRender()
 			config.view.width * 0.5f, config.view.height * 0.1f,
 			m_colorScheme.ui.scoreTextColor, Align::TOP_CENTER);
 		
+		// Display RTT
 		strStream.str("");
 		strStream.precision(2);
 		strStream << "RTT: " << m_rtt * 1000 << " ms (" << m_rtt * 60.0f << " frames)";
 		g.DrawString(m_fontSmall, strStream.str(),
 			16, 16, m_colorScheme.ui.scoreTextColor, Align::TOP_LEFT);
-
-		strStream.precision(0);
-		strStream.str("");
-		strStream << "MV#: " << m_lastMoveNumber;
-		g.DrawString(m_fontSmall, strStream.str(),
+		
+		// Display networking options.
+		g.DrawString(m_fontSmall,
+			m_enableClientSidePrediction ? "[P] Prediction: ON" : "[P] Prediction: OFF",
 			16, 48, m_colorScheme.ui.scoreTextColor, Align::TOP_LEFT);
-
-		Rect2f r(config.view.width - 16 - 180, 48, 180, 80);
-		r.Inflate(8, 8);
-		g.FillRect(r, Color::BLACK);
 		g.DrawString(m_fontSmall,
-			m_enableClientSidePrediction ? "Prediction: ON" : "Prediction: OFF",
-			config.view.width - 16, 48,
-			m_enableClientSidePrediction ? Color::GREEN : Color::RED,
-			Align::TOP_RIGHT);
+			m_enableServerReconciliation ? "[R] Reconciliation: ON" : "[R] Reconciliation: OFF",
+			16, 64, m_colorScheme.ui.scoreTextColor, Align::TOP_LEFT);
 		g.DrawString(m_fontSmall,
-			m_enableServerReconciliation ? "Reconciliation: ON" : "Reconciliation: OFF",
-			config.view.width - 16, 64,
-			m_enableServerReconciliation ? Color::GREEN : Color::RED,
-			Align::TOP_RIGHT);
-		g.DrawString(m_fontSmall,
-			m_enableEntityInterpolation ? "Entity Interpolation: ON" : "Entity Interpolation: OFF",
-			config.view.width - 16, 80,
-			m_enableEntityInterpolation ? Color::GREEN : Color::RED,
-			Align::TOP_RIGHT);
-		g.DrawString(m_fontSmall,
-			m_enableLagCompensation ? "Lag Comp: ON" : "Lag Comp: OFF",
-			config.view.width - 16, 96,
-			m_enableLagCompensation ? Color::GREEN : Color::RED,
-			Align::TOP_RIGHT);
+			m_enableEntityInterpolation ? "[E] Entity Interpolation: ON" : "[E] Entity Interpolation: OFF",
+			16, 80, m_colorScheme.ui.scoreTextColor, Align::TOP_LEFT);
 
 		// Count the number of players per team.
 		int playerCounts[2] = { 0, 0 };

@@ -72,6 +72,8 @@ int Server::Run()
 
 	double newTime;
 
+	m_timeStamp = 0.0f;
+
 	while (m_isRunning)
 	{
 		newTime = Time::GetTime();
@@ -88,6 +90,7 @@ int Server::Run()
 		if (newTime >= nextTickTime + frameTime)
 		{
 			Tick(m_frameTime);
+			m_timeStamp += m_frameTime;
 			frames++;
 
 			nextTickTime += frameTime;
@@ -113,9 +116,7 @@ void Server::Tick(float timeDelta)
 		Slime* player = m_gameWorld.GetPlayer(it->second->GetPlayerId());
 
 		// Process movement when in gameplay.
-		if (player != NULL &&
-			(m_gameWorld.GetState() == GameWorld::STATE_GAMEPLAY ||
-			m_gameWorld.GetState() == GameWorld::STATE_WAITING_FOR_PLAYERS))
+		if (player != nullptr)
 		{
 			for (int i = 0; i < moveList.GetMoveCount(); i++)
 			{
@@ -161,6 +162,27 @@ void Server::Tick(float timeDelta)
 		m_gameWorld.PositionBallAboveNet();
 	}
 
+	/*WorldState worldState;
+	//m_gameWorld.ExtractWorldState(&worldState);
+	worldState.SetTimeStamp(m_timeStamp);
+
+	for (auto it = m_networkManager.clients_begin();
+		it != m_networkManager.clients_end(); it++)
+	{
+		ClientProxy* client = it->second;
+		Slime* player = m_gameWorld.GetPlayer(it->first);
+
+		if (player != nullptr && player->HasJoinedGame())
+		{
+			if (client->IsLastMoveTimestampDirty())
+			{
+				worldState.SetEntityState(EntityState(
+					client->GetLastMoveTimeStamp(), client->GetPlayerId(),
+					player->GetPosition(), player->GetVelocity()));
+			}
+		}
+	}*/
+
 	// Send state info back to the clients.
 	for (auto it = m_networkManager.clients_begin(); it != m_networkManager.clients_end(); it++)
 	{
@@ -172,6 +194,7 @@ void Server::Tick(float timeDelta)
 		m_networkManager.WriteLastMoveTimestampIfDirty(bsOut, it->second);
 		bsOut.Write(ball.GetPosition());
 		bsOut.Write(ball.GetVelocity());
+		//worldState.Serialize(bsOut);
 		for (auto it2 = m_gameWorld.players_begin(); it2 != m_gameWorld.players_end(); it2++)
 		{
 			Slime* slime = it2->second;
@@ -181,7 +204,6 @@ void Server::Tick(float timeDelta)
 				ClientProxy* client2 = m_networkManager.GetClientProxy(slime->GetPlayerId());
 
 				bsOut.Write(slime->GetPlayerId());
-				//slime->SerializeDynamics(bsOut, m_gameWorld.GetConfig());
 				
 				PlayerState playerState;
 				playerState.SetTimeStamp(client2->GetLastMoveTimeStamp());

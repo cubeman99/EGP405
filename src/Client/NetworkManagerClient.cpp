@@ -10,12 +10,6 @@ NetworkManagerClient::NetworkManagerClient() :
 
 NetworkManagerClient::~NetworkManagerClient()
 {
-	for (auto it = m_playerIdToPlayerProxyMap.begin();
-		it != m_playerIdToPlayerProxyMap.end(); it++)
-	{
-		delete it->second;
-	}
-	m_playerIdToPlayerProxyMap.clear();
 }
 
 void NetworkManagerClient::Initialize(RakNet::RakPeerInterface* peerInterface,
@@ -61,33 +55,3 @@ void NetworkManagerClient::CloseConnection()
 	m_peerInterface->CloseConnection(m_serverAddress, true, 0, IMMEDIATE_PRIORITY);
 	Sleep(100);
 }
-
-
-void NetworkManagerClient::AddPlayerProxy(PlayerID playerId)
-{
-	if (GetPlayerProxy(playerId) == nullptr)
-		m_playerIdToPlayerProxyMap[playerId] = new PlayerProxy(playerId);
-}
-void NetworkManagerClient::RemovePlayerProxy(PlayerID playerId)
-{
-	if (GetPlayerProxy(playerId) != nullptr)
-		m_playerIdToPlayerProxyMap.erase(playerId);
-}
-
-PlayerProxy* NetworkManagerClient::GetPlayerProxy(PlayerID playerId)
-{
-	auto it = m_playerIdToPlayerProxyMap.find(playerId);
-	if (it != m_playerIdToPlayerProxyMap.end())
-		return it->second;
-	return nullptr;
-}
-
-void NetworkManagerClient::UpdatePlayerProxies(float timeDelta)
-{
-	for (auto it = m_playerIdToPlayerProxyMap.begin();
-		it != m_playerIdToPlayerProxyMap.end(); it++)
-	{
-		it->second->UpdateInterpolation(timeDelta);
-	}
-}
-
