@@ -4,10 +4,12 @@
 #include <math/Vector2f.h>
 #include <graphics/Color.h>
 #include <RakNet/BitStream.h>
-#include "Config.h"
+#include "GameConfig.h"
 #include <string>
 
 
+// The appearence and state information for a slime entity,
+// representing a player in the game.
 class Slime
 {
 public:

@@ -1,7 +1,6 @@
 #include "ClientApp.h"
 #include <GameLib/graphics/Graphics.h>
 #include <GameLib/util/Timing.h>
-#include <Common/Config.h>
 #include <math/MathLib.h>
 #include <sstream>
 #include "PlayerState.h"
@@ -206,6 +205,11 @@ void ClientApp::OnInitialize()
 	m_state = CLIENT_STATE_CHOOSE_COLOR;
 }
 
+void ClientApp::OnQuit()
+{
+	m_networkManager.CloseConnection();
+}
+
 void ClientApp::OnUpdate(float timeDelta)
 {
 	const GameConfig& config = m_gameWorld.GetConfig();
@@ -217,11 +221,14 @@ void ClientApp::OnUpdate(float timeDelta)
 	// Escape: Quit the game.
 	if (GetKeyboard()->IsKeyPressed(Keys::ESCAPE))
 	{
-		m_networkManager.CloseConnection();
 		Quit();
 		return;
 	}
 
+	if (GetKeyboard()->IsKeyPressed(Keys::PAGEUP))
+		m_numMovesPerInputPacket++;
+	if (GetKeyboard()->IsKeyPressed(Keys::PAGEDOWN))
+		m_numMovesPerInputPacket = Math::Max(1, m_numMovesPerInputPacket - 1);
 	if (GetKeyboard()->IsKeyPressed(Keys::P))
 		m_enableClientSidePrediction = !m_enableClientSidePrediction;
 	if (GetKeyboard()->IsKeyPressed(Keys::R))
@@ -441,18 +448,17 @@ void ClientApp::ReceivePacketUpdateTick(BitStream& inStream)
 		inStream.Read(lastMoveTimeStamp);
 		inStream.Read(lastMoveNumber);
 		m_rtt = (m_inputManager.GetTimeStamp() - lastMoveTimeStamp);
-		m_lastMoveNumber = lastMoveNumber;
 		
 		// Remove any moves from the unreconciled move list which
 		// came before the server's last confirmed move number.
 		for (int i = 0; i < unreconciledMoves.GetMoveCount(); i++)
 		{
-			if (unreconciledMoves[i].GetMoveNumber() <= m_lastMoveNumber)
+			if (unreconciledMoves[i].GetMoveNumber() <= lastMoveNumber)
 			{
 				Move m = unreconciledMoves.RemoveMove(i--);
 				lastReconciledMoveTimestamp = m.GetTimeStamp();
 				reconcile = true;
-				if (m.GetMoveNumber() == m_lastMoveNumber)
+				if (m.GetMoveNumber() == lastMoveNumber)
 					break;
 			}
 		}
@@ -463,27 +469,6 @@ void ClientApp::ReceivePacketUpdateTick(BitStream& inStream)
 	inStream.Read(ballVel);
 	m_gameWorld.GetBall().SetPosition(ballPos);
 	m_gameWorld.GetBall().SetVelocity(ballVel);
-
-	/*Vector2f playerPos = m_player->GetPosition();
-	Vector2f playerVel = m_player->GetVelocity();
-
-	// Read world state.
-	WorldState worldState;
-	worldState.Deserialize(inStream);
-
-	EntityState* newPlayerState = worldState.GetEntityState(m_player->GetPlayerId());
-	if (newPlayerState != nullptr && (reconcile ||
-		(!m_enableServerReconciliation && isLastTimeStampDirty)))
-	{
-		m_player->SetPosition(newPlayerState->GetPosition());
-		m_player->SetVelocity(newPlayerState->GetVelocity());
-	}
-	worldState.RemoveEntityState(m_player->GetPlayerId());
-
-	if (m_enableEntityInterpolation)
-		m_entityInterpolator.AddStateSnapshots(worldState);
-	else
-		m_gameWorld.ApplyState(&worldState);*/
 
 	// Read player states.
 	int playerId;
@@ -683,7 +668,7 @@ void ClientApp::OnRender()
 			config.view.width * 0.5f, config.view.height * 0.1f,
 			m_colorScheme.ui.scoreTextColor, Align::TOP_CENTER);
 		
-		// Display RTT
+		// Display RTT.
 		strStream.str("");
 		strStream.precision(2);
 		strStream << "RTT: " << m_rtt * 1000 << " ms (" << m_rtt * 60.0f << " frames)";
@@ -691,15 +676,19 @@ void ClientApp::OnRender()
 			16, 16, m_colorScheme.ui.scoreTextColor, Align::TOP_LEFT);
 		
 		// Display networking options.
-		g.DrawString(m_fontSmall,
-			m_enableClientSidePrediction ? "[P] Prediction: ON" : "[P] Prediction: OFF",
+		strStream.str("");
+		strStream << "[PgUp/Dwn] Moves sent every " << m_numMovesPerInputPacket << " frames";
+		g.DrawString(m_fontSmall, strStream.str(),
 			16, 48, m_colorScheme.ui.scoreTextColor, Align::TOP_LEFT);
 		g.DrawString(m_fontSmall,
-			m_enableServerReconciliation ? "[R] Reconciliation: ON" : "[R] Reconciliation: OFF",
+			m_enableClientSidePrediction ? "[P] Prediction: ON" : "[P] Prediction: OFF",
 			16, 64, m_colorScheme.ui.scoreTextColor, Align::TOP_LEFT);
 		g.DrawString(m_fontSmall,
-			m_enableEntityInterpolation ? "[E] Entity Interpolation: ON" : "[E] Entity Interpolation: OFF",
+			m_enableServerReconciliation ? "[R] Reconciliation: ON" : "[R] Reconciliation: OFF",
 			16, 80, m_colorScheme.ui.scoreTextColor, Align::TOP_LEFT);
+		g.DrawString(m_fontSmall,
+			m_enableEntityInterpolation ? "[E] Entity Interpolation: ON" : "[E] Entity Interpolation: OFF",
+			16, 96, m_colorScheme.ui.scoreTextColor, Align::TOP_LEFT);
 
 		// Count the number of players per team.
 		int playerCounts[2] = { 0, 0 };

@@ -31,4 +31,5 @@ struct PacketType
 	};
 };
 
+
 #endif // _MESSAGES_H_

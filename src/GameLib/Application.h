@@ -33,6 +33,7 @@ protected:
 	virtual void OnInitialize() {}
 	virtual void OnUpdate(float timeDelta) {}
 	virtual void OnRender() {}
+	virtual void OnQuit() {}
 	
 private:
 	void HandleSDLEvent(SDL_Event* e);

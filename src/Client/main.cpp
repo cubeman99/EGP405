@@ -22,7 +22,7 @@
 
 #include <GameLib/Application.h>
 #include <GameLib/graphics/Graphics.h>
-#include <Common/Config.h>
+#include <Common/GameConfig.h>
 #include "ClientApp.h"
 
 #define SERVER_PORT 60000

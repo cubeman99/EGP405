@@ -27,7 +27,7 @@ private:
 	InputState m_inputState;
 	float m_timeStamp;
 	float m_deltaTime;
-	int m_moveNumber;
+	int m_moveNumber; // Used for server-reconciliation.
 };
 
 

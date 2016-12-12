@@ -70,6 +70,8 @@ void Application::Run()
 				renderTime = newTime + frameTime;
 		}
 	}
+
+	OnQuit();
 }
 
 void Application::Update(float timeDelta)

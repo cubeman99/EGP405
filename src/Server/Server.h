@@ -15,12 +15,13 @@
 #include "Slime.h"
 #include "Team.h"
 #include "Messages.h"
-#include "Config.h"
+#include "GameConfig.h"
 #include "MoveList.h"
 #include "NetworkManagerServer.h"
 #include "GameWorld.h"
 
 
+// Class responsible for running the server.
 class Server : public NetworkEventHandler
 {
 public:

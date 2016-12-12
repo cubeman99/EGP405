@@ -1,7 +1,6 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
-#include <graphics/Color.h>
 #include <math/Vector2f.h>
 #include <vector>
 
@@ -10,7 +9,7 @@
 #pragma pack(1)
 struct GameConfig
 {
-	GameConfig();
+	GameConfig() {}
 
 	struct
 	{
@@ -48,44 +47,6 @@ struct GameConfig
 	int maxPlayers;
 };
 #pragma pack()
-
-
-struct ColorScheme
-{
-	ColorScheme();
-
-	Color skyColor;
-	Color groundColor;
-	Color netColor;
-	Color ballColor;
-
-	struct
-	{
-		Color eyeColor;
-		Color pupilColor;
-		std::vector<Color> bodyColors;
-
-	} slime;
-
-	struct
-	{
-		Color scoreTextColor;
-		Color gameInfoTextColor;
-		Color menuPromptTextColor;
-
-		struct 
-		{
-			Color textColor;
-			Color backgroundColor;
-		} joinTeamButton;
-
-		struct
-		{
-			Color outlineColor;
-		} chooseColorButton;
-
-	} ui;
-};
 
 
 #endif // _CONFIG_H_

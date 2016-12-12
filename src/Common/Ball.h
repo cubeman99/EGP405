@@ -18,8 +18,6 @@ public:
 	const Vector2f& GetPosition() const;
 	const Vector2f& GetVelocity() const;
 	float GetRadius() const;
-	
-	// TODO: serialize/deserialize
 
 private:
 	Vector2f m_position;

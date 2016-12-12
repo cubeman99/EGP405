@@ -162,27 +162,6 @@ void Server::Tick(float timeDelta)
 		m_gameWorld.PositionBallAboveNet();
 	}
 
-	/*WorldState worldState;
-	//m_gameWorld.ExtractWorldState(&worldState);
-	worldState.SetTimeStamp(m_timeStamp);
-
-	for (auto it = m_networkManager.clients_begin();
-		it != m_networkManager.clients_end(); it++)
-	{
-		ClientProxy* client = it->second;
-		Slime* player = m_gameWorld.GetPlayer(it->first);
-
-		if (player != nullptr && player->HasJoinedGame())
-		{
-			if (client->IsLastMoveTimestampDirty())
-			{
-				worldState.SetEntityState(EntityState(
-					client->GetLastMoveTimeStamp(), client->GetPlayerId(),
-					player->GetPosition(), player->GetVelocity()));
-			}
-		}
-	}*/
-
 	// Send state info back to the clients.
 	for (auto it = m_networkManager.clients_begin(); it != m_networkManager.clients_end(); it++)
 	{
@@ -194,7 +173,6 @@ void Server::Tick(float timeDelta)
 		m_networkManager.WriteLastMoveTimestampIfDirty(bsOut, it->second);
 		bsOut.Write(ball.GetPosition());
 		bsOut.Write(ball.GetVelocity());
-		//worldState.Serialize(bsOut);
 		for (auto it2 = m_gameWorld.players_begin(); it2 != m_gameWorld.players_end(); it2++)
 		{
 			Slime* slime = it2->second;

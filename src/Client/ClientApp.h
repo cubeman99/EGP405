@@ -15,15 +15,17 @@
 #include <GameLib/math/Vector2f.h>
 
 #include "Ball.h"
-#include "Config.h"
+#include "ColorScheme.h"
+#include "EntityInterpolator.h"
+#include "GameConfig.h"
+#include "GameWorld.h"
 #include "Messages.h"
 #include "NetworkManagerClient.h"
 #include "Slime.h"
 #include "Team.h"
-#include "GameWorld.h"
-#include "EntityInterpolator.h"
 
 
+// Application class that runs the client.
 class ClientApp : public Application
 {
 public:
@@ -35,9 +37,10 @@ public:
 	float GetTimeStamp();
 
 protected:
-	void OnInitialize();
-	void OnUpdate(float timeDelta);
-	void OnRender();
+	void OnInitialize() override;
+	void OnUpdate(float timeDelta) override;
+	void OnRender() override;
+	void OnQuit() override;
 
 private:
 
@@ -73,26 +76,22 @@ private:
 	int						m_selectedColorButtonIndex;
 	std::vector<Vector2f>	m_chooseColorButtons;
 	std::vector<Rect2f>		m_joinTeamButtons;
-
-	// Client game state
-	GameWorld	m_gameWorld;
-	int			m_state;
-	Slime*		m_player;
-
-	// Managers
-	RakNet::RakPeerInterface*	m_peerInterface;
-	InputManager				m_inputManager;
-	NetworkManagerClient		m_networkManager;
-
-	float m_rtt;
-	int m_lastMoveNumber;
-
 	int m_numMovesPerInputPacket;
 	bool m_enableClientSidePrediction;
 	bool m_enableServerReconciliation;
 	bool m_enableEntityInterpolation;
 
-	EntityInterpolator m_entityInterpolator;
+	// Client game state
+	GameWorld	m_gameWorld;
+	int			m_state;
+	Slime*		m_player;
+	float		m_rtt;
+
+	// Managers
+	RakNet::RakPeerInterface*	m_peerInterface;
+	InputManager				m_inputManager;
+	NetworkManagerClient		m_networkManager;
+	EntityInterpolator			m_entityInterpolator;
 };
 
 

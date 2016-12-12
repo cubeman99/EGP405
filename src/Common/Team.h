@@ -3,7 +3,7 @@
 
 #include <math/Vector2f.h>
 #include <math/Rect2f.h>
-#include "Config.h"
+#include "GameConfig.h"
 #include <string>
 
 

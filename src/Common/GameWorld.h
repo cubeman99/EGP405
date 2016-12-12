@@ -5,15 +5,15 @@
 #include <graphics/Color.h>
 #include <map>
 #include "Ball.h"
-#include "Config.h"
+#include "GameConfig.h"
 #include "Slime.h"
 #include "Team.h"
 #include "InputState.h"
-#include "WorldState.h"
 
 typedef int PlayerID;
 
 
+// Holds game state information and functions for game simulation.
 class GameWorld
 {
 public:
@@ -53,9 +53,6 @@ public:
 	void PositionBallAboveNet();
 	void PositionBallForServe(int servingTeamIndex);
 	void PositionPlayersForServe();
-
-	void ExtractWorldState(WorldState* state);
-	void ApplyState(WorldState* state);
 
 private:
 	PlayerMap	m_players;

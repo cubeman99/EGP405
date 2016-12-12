@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\interpolator">
+      <UniqueIdentifier>{f150d702-7466-4e9c-aca5-b4bf8810e67a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\Client\ClientApp.cpp">
@@ -28,7 +31,13 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\Client\EntityInterpolator.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\interpolator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Client\EntityState.cpp">
+      <Filter>Source Files\interpolator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Client\EntityStateHistory.cpp">
+      <Filter>Source Files\interpolator</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -42,6 +51,15 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Client\EntityInterpolator.h">
+      <Filter>Source Files\interpolator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Client\EntityState.h">
+      <Filter>Source Files\interpolator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Client\EntityStateHistory.h">
+      <Filter>Source Files\interpolator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Client\ColorScheme.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

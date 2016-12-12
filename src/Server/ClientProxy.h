@@ -37,5 +37,4 @@ private:
 };
 
 
-
 #endif // _CLIENT_PROXY_H_

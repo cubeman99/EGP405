@@ -5,6 +5,7 @@
 #include "MoveList.h"
 
 
+// Responsible for polling input, and keeping track of moves.
 class InputManager
 {
 public:
